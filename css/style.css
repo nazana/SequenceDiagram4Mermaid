@@ -426,26 +426,38 @@ body {
     font-weight: 600;
 }
 
+/* Participant List & Items */
 .participant-list {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
-    margin-bottom: 1rem;
+    width: 100%;
+    margin: 0;
+    /* Styles are handled by wrapper and items */
 }
 
 .participant-item {
     display: flex;
     gap: 0.5rem;
     align-items: center;
+    padding: 0.5rem;
+    /* background-color: var(--color-bg-input); Removed to match dark design */
+    border-bottom: 1px solid var(--color-border);
+}
+
+.participant-item:last-child {
+    border-bottom: none;
 }
 
 /* Sequence Table */
 .sequence-table {
     display: flex;
     flex-direction: column;
-    border: 1px solid var(--color-border);
-    border-radius: var(--border-radius);
-    overflow: hidden;
+    /* Border and Layout moved to .sequence-table-wrapper in JS */
+    width: 100%;
+    background-color: var(--color-bg-panel);
+}
+
+.sequence-table-wrapper {
     margin-bottom: 1rem;
 }
 
@@ -453,7 +465,7 @@ body {
     display: flex;
     gap: 0.5rem;
     padding: 0.5rem;
-    background-color: var(--color-bg-input);
+    /* background-color: var(--color-bg-input); Removed */
     border-bottom: 1px solid var(--color-border);
     align-items: center;
 }
@@ -474,7 +486,8 @@ body {
     display: flex;
     justify-content: center;
     cursor: grab;
-    color: var(--color-text-muted);
+    color: var(--color-text-secondary);
+    /* Changed from muted to secondary (lighter) */
 }
 
 .col-source {
@@ -535,6 +548,103 @@ select.input-sm {
 .btn-sm {
     font-size: 0.85rem;
     padding: 0.3rem 0.6rem;
+}
+
+/* --- Custom Modal --- */
+.modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    opacity: 1;
+    transition: opacity 0.2s;
+}
+
+.modal-backdrop.hidden {
+    opacity: 0;
+    pointer-events: none;
+    display: none;
+    /* simple hide */
+}
+
+.modal-dialog {
+    background-color: var(--color-bg-panel);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius);
+    width: 90%;
+    max-width: 400px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+    display: flex;
+    flex-direction: column;
+    animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.modal-header {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--color-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-header h3 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 0;
+}
+
+.modal-body {
+    padding: 1.5rem;
+    color: var(--color-text-secondary);
+}
+
+.modal-body p {
+    margin-bottom: 1rem;
+    line-height: 1.5;
+}
+
+.modal-body input[type="text"],
+.modal-body .input-text {
+    width: 100%;
+    padding: 0.6rem 0.8rem;
+    background-color: var(--color-bg-base);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius);
+    color: var(--color-text-primary);
+    font-size: 1rem;
+    transition: border-color 0.2s;
+}
+
+.modal-body input:focus {
+    border-color: var(--color-primary);
+    outline: none;
+}
+
+.modal-footer {
+    padding: 1rem 1.5rem;
+    border-top: 1px solid var(--color-border);
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
 }
 
 /* Modal Styles */

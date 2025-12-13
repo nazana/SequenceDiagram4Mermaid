@@ -103,6 +103,18 @@ export function updateDiagram(diagramId, code, authorName, note = 'Update') {
     return diagrams[index];
 }
 
+export function deleteDiagram(diagramId) {
+    // 1. Delete Metadata
+    let diagrams = getAllDiagrams();
+    diagrams = diagrams.filter(d => d.id !== diagramId);
+    localStorage.setItem(KEYS.DIAGRAMS, JSON.stringify(diagrams));
+
+    // 2. Delete Versions
+    let versions = getAllVersions();
+    versions = versions.filter(v => v.diagramId !== diagramId);
+    localStorage.setItem(KEYS.VERSIONS, JSON.stringify(versions));
+}
+
 // --- Version Management ---
 function getAllVersions() {
     const json = localStorage.getItem(KEYS.VERSIONS);

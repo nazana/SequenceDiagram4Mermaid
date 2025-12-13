@@ -27,6 +27,61 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 2rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .dashboard-controls {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .search-box {
+            position: relative;
+            flex: 1;
+            min-width: 250px;
+        }
+
+        .search-box i {
+            position: absolute;
+            left: 0.8rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--color-text-secondary);
+        }
+
+        .search-box input {
+            padding-left: 2.5rem;
+            width: 100%;
+            height: 40px;
+            background-color: var(--color-bg-base);
+            border: 1px solid var(--color-border);
+            color: var(--color-text-primary);
+            border-radius: var(--border-radius);
+            font-size: 0.95rem;
+        }
+
+        .search-box input:focus {
+            border-color: var(--color-primary);
+            outline: none;
+        }
+
+        .sort-box select {
+            min-width: 120px;
+            height: 40px;
+            background-color: var(--color-bg-base);
+            border: 1px solid var(--color-border);
+            color: var(--color-text-primary);
+            border-radius: var(--border-radius);
+            padding: 0 1rem;
+            cursor: pointer;
+        }
+
+        .sort-box select:focus {
+            border-color: var(--color-primary);
+            outline: none;
         }
 
         .diagram-grid {
@@ -124,6 +179,19 @@
                     <a href="index.html" class="btn btn-primary"><i class="ph ph-plus"></i> 새로 만들기</a>
                 </div>
 
+                <div class="dashboard-controls">
+                    <div class="search-box">
+                        <i class="ph ph-magnifying-glass"></i>
+                        <input type="text" id="search-input" placeholder="다이어그램 검색..." class="input-text">
+                    </div>
+                    <div class="sort-box">
+                        <select id="sort-select" class="input-select">
+                            <option value="newest">최신순</option>
+                            <option value="name">이름순</option>
+                        </select>
+                    </div>
+                </div>
+
                 <div id="diagram-list" class="diagram-grid">
                     <!-- Loading... -->
                 </div>
@@ -133,18 +201,74 @@
 
     <!-- Script -->
     <script type="module">
-        import { getAllDiagrams, getCurrentUser } from './js/storage.js';
-        import { renderMermaid } from './js/mermaid-utils.js';
+        // Add cache busting param to force reload storage.js
+        import { getAllDiagrams, getCurrentUser, deleteDiagram } from './js/storage.js';
+        import { showAlert, showConfirm } from './js/ui-utils.js';
+        // import { renderMermaid } from './js/mermaid-utils.js'; // Not used for simple list yet
 
         const listContainer = document.getElementById('diagram-list');
         const userDisplay = document.getElementById('user-display');
+        const searchInput = document.getElementById('search-input');
+        const sortSelect = document.getElementById('sort-select');
+
+        let allDiagrams = [];
 
         async function init() {
-            const user = getCurrentUser();
-            userDisplay.textContent = user.name;
+            try {
+                const user = getCurrentUser();
+                userDisplay.textContent = user.name;
 
-            const diagrams = getAllDiagrams();
-            renderList(diagrams);
+                allDiagrams = getAllDiagrams();
+                filterAndRender();
+
+                // Events
+                searchInput.addEventListener('input', filterAndRender);
+                sortSelect.addEventListener('change', filterAndRender);
+            } catch (error) {
+                console.error('Dashboard init failed:', error);
+                if (typeof showAlert !== 'undefined') {
+                    showAlert('초기화 중 오류가 발생했습니다: ' + error.message, '오류');
+                } else {
+                    alert('Error: ' + error.message);
+                }
+            }
+        }
+
+        // ... (filterAndRender, renderList 생략, 기존 코드 유지)
+
+        // Expose to window for onclick
+        window.handleDelete = async (id) => {
+            const confirmed = await showConfirm('정말 삭제하시겠습니까? 복구할 수 없습니다.', '다이어그램 삭제');
+            if (confirmed) {
+                deleteDiagram(id);
+                // Refresh
+                allDiagrams = getAllDiagrams();
+                filterAndRender();
+            }
+        };
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', init);
+        } else {
+            init();
+        }
+
+        function filterAndRender() {
+            const keyword = searchInput.value.toLowerCase();
+            const sortMode = sortSelect.value;
+
+            let filtered = allDiagrams.filter(d =>
+                d.title.toLowerCase().includes(keyword) ||
+                d.updatedBy.toLowerCase().includes(keyword)
+            );
+
+            if (sortMode === 'newest') {
+                filtered.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+            } else {
+                filtered.sort((a, b) => a.title.localeCompare(b.title));
+            }
+
+            renderList(filtered);
         }
 
         function renderList(diagrams) {
@@ -159,7 +283,7 @@
             }
 
             listContainer.innerHTML = diagrams.map(d => `
-                <a href="index.html?id=${d.id}" class="diagram-card">
+                <div class="diagram-card" onclick="location.href='index.html?id=${d.id}'">
                     <div class="card-preview">
                         <i class="ph ph-image"></i>
                     </div>
@@ -169,10 +293,26 @@
                             <span>수정: ${new Date(d.updatedAt).toLocaleDateString()}</span>
                             <span>작성자: ${d.updatedBy}</span>
                         </div>
+                        <div class="card-actions" style="margin-top: 1rem; display: flex; gap: 0.5rem;">
+                            <!-- Stop propagation to prevent navigation -->
+                            <button class="btn btn-sm" onclick="event.stopPropagation(); handleDelete('${d.id}')">
+                                <i class="ph ph-trash"></i> 삭제
+                            </button>
+                        </div>
                     </div>
-                </a>
+                </div>
             `).join('');
         }
+
+        // Expose to window for onclick
+        window.handleDelete = async (id) => {
+            if (confirm('정말 삭제하시겠습니까? 복구할 수 없습니다.')) {
+                deleteDiagram(id);
+                // Refresh
+                allDiagrams = getAllDiagrams();
+                filterAndRender();
+            }
+        };
 
         init();
     </script>

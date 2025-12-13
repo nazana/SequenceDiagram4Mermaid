@@ -1,6 +1,7 @@
 import { renderMermaid, parseMermaidCode, generateMermaidCode } from './mermaid-utils.js';
 import { initGridEditor, renderGridEditor } from './grid-editor.js';
 import { getCurrentUser, saveUser, getDiagram, createDiagram, updateDiagram, getDiagramVersions, getVersion } from './storage.js';
+import { showAlert, showPrompt, showConfirm } from './ui-utils.js';
 
 // DOM Elements
 const markdownInput = document.getElementById('markdown-input');
@@ -54,7 +55,7 @@ async function init() {
             const latestVersion = getVersion(diagram.latestVersionId);
             markdownInput.value = latestVersion ? latestVersion.code : DEFAULT_DIAGRAM;
         } else {
-            alert('Diagram not found. Redirecting to dashboard.');
+            await showAlert('Diagram not found. Redirecting to dashboard.');
             window.location.href = 'dashboard.html';
             return;
         }
@@ -85,13 +86,20 @@ async function init() {
     // Initial Render
     await syncFromMarkdown();
 
-    // Force reset zoom to ensure visibility on load
-    /*
-    setTimeout(() => {
-        panzoomInstance.reset();
-        panzoomInstance.zoom(0.8); // Slightly zoom out to fit
-    }, 100);
-    */
+    // Set initial tab UI
+    updateTabUI();
+}
+
+function updateTabUI() {
+    tabButtons.forEach(btn => {
+        if (btn.dataset.tab === activeTab) btn.classList.add('active');
+        else btn.classList.remove('active');
+    });
+
+    tabContents.forEach(content => {
+        if (content.id === `${activeTab}-editor`) content.classList.add('active');
+        else content.classList.remove('active');
+    });
 }
 
 function onGridChange(model) {
@@ -231,47 +239,60 @@ function setupDetailPanel() {
 
 function setupDataActions() {
     // New
-    btnNew.addEventListener('click', () => {
-        if (confirm('Create new diagram? Unsaved changes will be lost.')) {
+    btnNew.addEventListener('click', async () => {
+        if (await showConfirm('Create new diagram? Unsaved changes will be lost.', '새 다이어그램')) {
             window.location.href = 'index.html';
         }
     });
 
     // Save
-    btnSave.addEventListener('click', () => {
+    btnSave.addEventListener('click', async () => {
         let user = getCurrentUser();
-        if (user.name === 'Guest') {
-            const name = prompt('이름을 입력해주세요 (등록자):', '');
-            if (!name) return;
-            user = saveUser(name);
+        // If no user, ask for name
+        if (!user || !user.name) {
+            const name = await showPrompt('작성자 이름을 입력해주세요:', 'User', '사용자 등록');
+            if (name) {
+                user = saveUser(name);
+            } else {
+                return;
+            }
         }
 
         const code = markdownInput.value;
+        if (!code.trim()) {
+            await showAlert('저장할 내용이 없습니다.');
+            return;
+        }
 
-        if (currentDiagramId) {
-            // Update
-            const note = prompt('변경 사항에 대한 메모를 남겨주세요:', 'Update');
-            if (note === null) return; // Cancelled
-            updateDiagram(currentDiagramId, code, user.name, note);
-            alert('저장되었습니다!');
-        } else {
-            // Create
-            const title = prompt('다이어그램 제목을 입력해주세요:', 'My Diagram');
-            if (!title) return;
-            const diagram = createDiagram(title, code, user.name);
-            currentDiagramId = diagram.id;
+        try {
+            if (currentDiagramId) {
+                // Update
+                const note = await showPrompt('변경 사항에 대한 메모를 남겨주세요:', 'Update', '버전 저장');
+                if (note === null) return; // Cancelled
+                updateDiagram(currentDiagramId, code, user.name, note);
+                await showAlert('저장되었습니다!');
+            } else {
+                // Create
+                const title = await showPrompt('다이어그램 제목을 입력해주세요:', 'My Diagram', '새 다이어그램');
+                if (!title) return; // Cancelled
+                const diagram = createDiagram(title, code, user.name);
+                currentDiagramId = diagram.id;
 
-            // Update URL without reload
-            const newUrl = `${window.location.pathname}?id=${currentDiagramId}`;
-            window.history.pushState({ path: newUrl }, '', newUrl);
-            alert('새로운 다이어그램이 생성되었습니다!');
+                // Update URL without reload
+                const newUrl = `${window.location.pathname}?id=${currentDiagramId}`;
+                window.history.pushState({ path: newUrl }, '', newUrl);
+                await showAlert('새로운 다이어그램이 생성되었습니다!');
+            }
+        } catch (e) {
+            console.error('Save failed:', e);
+            await showAlert('저장 중 오류가 발생했습니다: ' + e.message, '오류');
         }
     });
 
     // History
-    btnHistory.addEventListener('click', () => {
+    btnHistory.addEventListener('click', async () => {
         if (!currentDiagramId) {
-            alert('저장된 다이어그램이 이력이 없습니다.');
+            await showAlert('저장된 다이어그램 이력이 없습니다.');
             return;
         }
 
