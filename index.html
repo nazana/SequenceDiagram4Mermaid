@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mermaid Editor Enhanced</title>
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="css/style.css">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap"
+        rel="stylesheet">
+
+    <!-- Icons (Phosphor Icons) -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <!-- Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.0/dist/mermaid.min.js"></script>
+    <script src="https://unpkg.com/@panzoom/panzoom@4.5.1/dist/panzoom.min.js"></script>
+</head>
+
+<body>
+    <div id="app">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="logo">
+                <a href="dashboard.html"
+                    style="text-decoration: none; color: inherit; display: flex; align-items: center; gap: 0.5rem;">
+                    <i class="ph ph-waves"></i>
+                    <span>Mermaid Editor</span>
+                </a>
+            </div>
+            <div class="toolbar">
+                <button id="btn-toggle-sidebar" class="btn btn-ghost" title="에디터 열기/닫기"><i
+                        class="ph ph-sidebar"></i></button>
+                <div class="divider-vertical"></div>
+                <a href="dashboard.html" class="btn btn-ghost" title="대시보드"><i class="ph ph-squares-four"></i></a>
+                <button id="btn-new" class="btn btn-ghost" title="새로 만들기"><i class="ph ph-plus"></i></button>
+                <div class="divider-vertical"></div>
+                <button id="btn-save" class="btn btn-primary"><i class="ph ph-floppy-disk"></i> 저장</button>
+                <button id="btn-history" class="btn btn-ghost" title="이력"><i
+                        class="ph ph-clock-counter-clockwise"></i></button>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="app-main">
+            <!-- Left Panel: Editors (Tabs for Grid / Markdown) -->
+            <div class="editor-panel">
+                <div class="tabs">
+                    <div style="display: flex;">
+                        <button class="tab-item active" data-tab="grid">Grid Editor</button>
+                        <button class="tab-item" data-tab="markdown">Markdown</button>
+                    </div>
+                    <button id="btn-close-sidebar" class="btn-icon" style="margin-right: 0.5rem;" title="패널 접기"><i
+                            class="ph ph-caret-double-left"></i></button>
+                </div>
+
+                <div class="tab-content" id="tab-grid">
+                    <!-- Grid Editor Container -->
+                    <div id="grid-editor-container">
+                        <div class="placeholder-text">Grid Editor Loading...</div>
+                    </div>
+                </div>
+
+                <div class="tab-content hidden" id="tab-markdown">
+                    <textarea id="markdown-input" spellcheck="false" placeholder="Mermaid 코드를 입력하세요..."></textarea>
+                </div>
+            </div>
+
+            <!-- Resizer Handle -->
+            <div class="resizer" id="resizer"></div>
+
+            <!-- Right Panel: Preview -->
+            <div class="preview-panel">
+                <div class="preview-toolbar">
+                    <div class="zoom-controls">
+                        <button id="btn-zoom-out" class="btn-icon"><i class="ph ph-minus"></i></button>
+                        <span id="zoom-level">100%</span>
+                        <button id="btn-zoom-in" class="btn-icon"><i class="ph ph-plus"></i></button>
+                        <button id="btn-zoom-reset" class="btn-icon" title="초기화"><i
+                                class="ph ph-arrows-out"></i></button>
+                    </div>
+                </div>
+                <div id="mermaid-container" class="mermaid-container">
+                    <!-- Mermaid Diagram will be rendered here -->
+                    <div id="mermaid-output"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- History Modal -->
+    <div id="history-modal" class="modal-overlay hidden">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>버전 이력</h3>
+                <button id="btn-close-history" class="btn-icon"><i class="ph ph-x"></i></button>
+            </div>
+            <div class="modal-body">
+                <ul id="history-list" class="history-list">
+                    <!-- Items injected here -->
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Application Logic -->
+    <script type="module" src="js/app.js"></script>
+</body>
+
+</html>

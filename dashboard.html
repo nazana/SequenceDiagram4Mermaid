@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mermaid Editor - Dashboard</title>
+    <!-- CSS -->
+    <link rel="stylesheet" href="css/style.css">
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <style>
+        .dashboard-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 2rem;
+            width: 100%;
+        }
+
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .diagram-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .diagram-card {
+            background-color: var(--color-bg-panel);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            transition: transform 0.2s, border-color 0.2s;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .diagram-card:hover {
+            transform: translateY(-2px);
+            border-color: var(--color-primary);
+        }
+
+        .card-preview {
+            height: 140px;
+            background-color: var(--color-bg-base);
+            border-bottom: 1px solid var(--color-border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--color-text-muted);
+            font-size: 3rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card-preview svg {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            opacity: 0.5;
+        }
+
+        .card-body {
+            padding: 1rem;
+        }
+
+        .card-title {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .card-meta {
+            font-size: 0.8rem;
+            color: var(--color-text-secondary);
+            display: flex;
+            flex-direction: column;
+            gap: 0.2rem;
+        }
+
+        .empty-state {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 4rem;
+            color: var(--color-text-secondary);
+            background: var(--color-bg-panel);
+            border-radius: var(--border-radius);
+            border: 1px dashed var(--color-border);
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="logo">
+                <i class="ph ph-waves"></i>
+                <span>Mermaid Editor</span>
+            </div>
+            <div class="user-profile" id="user-display"></div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="app-main" style="overflow-y: auto;">
+            <div class="dashboard-container">
+                <div class="dashboard-header">
+                    <h2>나의 다이어그램</h2>
+                    <a href="index.html" class="btn btn-primary"><i class="ph ph-plus"></i> 새로 만들기</a>
+                </div>
+
+                <div id="diagram-list" class="diagram-grid">
+                    <!-- Loading... -->
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Script -->
+    <script type="module">
+        import { getAllDiagrams, getCurrentUser } from './js/storage.js';
+        import { renderMermaid } from './js/mermaid-utils.js';
+
+        const listContainer = document.getElementById('diagram-list');
+        const userDisplay = document.getElementById('user-display');
+
+        async function init() {
+            const user = getCurrentUser();
+            userDisplay.textContent = user.name;
+
+            const diagrams = getAllDiagrams();
+            renderList(diagrams);
+        }
+
+        function renderList(diagrams) {
+            if (diagrams.length === 0) {
+                listContainer.innerHTML = `
+                    <div class="empty-state">
+                        <i class="ph ph-files" style="font-size: 3rem; margin-bottom: 1rem;"></i>
+                        <p>저장된 다이어그램이 없습니다.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            listContainer.innerHTML = diagrams.map(d => `
+                <a href="index.html?id=${d.id}" class="diagram-card">
+                    <div class="card-preview">
+                        <i class="ph ph-image"></i>
+                    </div>
+                    <div class="card-body">
+                        <div class="card-title">${d.title}</div>
+                        <div class="card-meta">
+                            <span>수정: ${new Date(d.updatedAt).toLocaleDateString()}</span>
+                            <span>작성자: ${d.updatedBy}</span>
+                        </div>
+                    </div>
+                </a>
+            `).join('');
+        }
+
+        init();
+    </script>
+</body>
+
+</html>
