@@ -1,4 +1,4 @@
-import { renderMermaid, parseMermaidCode, generateMermaidCode } from './mermaid-utils.js';
+import { renderMermaid, parseMermaidCode, generateMermaidCode, sanitizeMermaidCode } from './mermaid-utils.js';
 import { initGridEditor, renderGridEditor } from './grid-editor.js';
 import { getCurrentUser, saveUser, getDiagram, createDiagram, updateDiagram, getDiagramVersions, getVersion } from './storage.js';
 import { showAlert, showPrompt, showConfirm } from './ui-utils.js';
@@ -30,12 +30,13 @@ let activeTab = 'grid'; // grid | markdown
 let currentDiagramId = null;
 
 // Initial Default Diagram
+// Initial Default Diagram
 const DEFAULT_DIAGRAM = `sequenceDiagram
     participant A as Alice
     participant B as Bob
     
     A->>B: Hello Bob, how are you?
-    B-->>A: Great!
+    B->>A: Great!
 `;
 
 // Initialize App
@@ -53,7 +54,8 @@ async function init() {
             currentDiagramId = id;
             // Get latest version
             const latestVersion = getVersion(diagram.latestVersionId);
-            markdownInput.value = latestVersion ? latestVersion.code : DEFAULT_DIAGRAM;
+            // Sanitize content to fix potential data corruption (e.g. invalid arrow dashes)
+            markdownInput.value = sanitizeMermaidCode(latestVersion ? latestVersion.code : DEFAULT_DIAGRAM);
         } else {
             await showAlert('Diagram not found. Redirecting to dashboard.');
             window.location.href = 'dashboard.html';

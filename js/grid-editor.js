@@ -6,6 +6,20 @@ let currentModel = null;
 let onChangeCallback = null;
 let currentContainer = null; // Store container for re-rendering
 
+// SVG Definitions for Arrows
+const ARROW_SVGS = {
+    '->>': `<svg viewBox="0 0 80 14" fill="none" class="arrow-svg"><path d="M0 7H70" stroke="currentColor" stroke-width="2"/><path d="M70 7L60 2V12L70 7Z" fill="currentColor"/></svg>`,
+    '-->>': `<svg viewBox="0 0 80 14" fill="none" class="arrow-svg"><path d="M0 7H70" stroke="currentColor" stroke-width="2" stroke-dasharray="4 4"/><path d="M70 7L60 2V12L70 7Z" fill="currentColor"/></svg>`,
+    '-)': `<svg viewBox="0 0 80 14" fill="none" class="arrow-svg"><path d="M0 7H70" stroke="currentColor" stroke-width="2"/><path d="M60 2L70 7L60 12" stroke="currentColor" stroke-width="2"/></svg>`,
+    '--)': `<svg viewBox="0 0 80 14" fill="none" class="arrow-svg"><path d="M0 7H70" stroke="currentColor" stroke-width="2" stroke-dasharray="4 4"/><path d="M60 2L70 7L60 12" stroke="currentColor" stroke-width="2"/></svg>`,
+    '->': `<svg viewBox="0 0 80 14" fill="none" class="arrow-svg"><path d="M0 7H80" stroke="currentColor" stroke-width="2"/></svg>`,
+    '-->': `<svg viewBox="0 0 80 14" fill="none" class="arrow-svg"><path d="M0 7H80" stroke="currentColor" stroke-width="2" stroke-dasharray="4 4"/></svg>`,
+    '-x': `<svg viewBox="0 0 80 14" fill="none" class="arrow-svg"><path d="M0 7H70" stroke="currentColor" stroke-width="2"/><path d="M63 3L73 11M73 3L63 11" stroke="currentColor" stroke-width="2"/></svg>`,
+    '--x': `<svg viewBox="0 0 80 14" fill="none" class="arrow-svg"><path d="M0 7H70" stroke="currentColor" stroke-width="2" stroke-dasharray="4 4"/><path d="M63 3L73 11M73 3L63 11" stroke="currentColor" stroke-width="2"/></svg>`,
+    '<<->>': `<svg viewBox="0 0 80 14" fill="none" class="arrow-svg"><path d="M0 7L10 12V2L0 7Z" fill="currentColor"/><path d="M10 7H70" stroke="currentColor" stroke-width="2"/><path d="M70 7L60 2V12L70 7Z" fill="currentColor"/></svg>`,
+    '<<-->>': `<svg viewBox="0 0 80 14" fill="none" class="arrow-svg"><path d="M0 7L10 12V2L0 7Z" fill="currentColor"/><path d="M10 7H70" stroke="currentColor" stroke-width="2" stroke-dasharray="4 4"/><path d="M70 7L60 2V12L70 7Z" fill="currentColor"/></svg>`
+};
+
 export function initGridEditor(callback) {
     onChangeCallback = callback;
 }
@@ -158,12 +172,10 @@ export function renderGridEditor(container, model) {
                     </select>
                 </span>
                 <span class="col-type">
-                    <select class="input-sm seq-type">
-                        <option value="->>" ${item.arrow === '->>' ? 'selected' : ''}>->> (Solid)</option>
-                        <option value="-->>" ${item.arrow === '-->>' ? 'selected' : ''}>-->> (Dotted)</option>
-                        <option value="->" ${item.arrow === '->' ? 'selected' : ''}>-> (Solid Line)</option>
-                        <option value="-->" ${item.arrow === '-->' ? 'selected' : ''}>--> (Dotted Line)</option>
-                    </select>
+                    <button class="btn-arrow-type" title="Change Line Type">
+                        ${ARROW_SVGS[item.arrow] || ARROW_SVGS['->>']}
+                    </button>
+                    <!-- Actual value stored in model, no hidden input needed for this logic -->
                 </span>
                 <span class="col-target">
                      <select class="input-sm seq-target">
@@ -178,8 +190,14 @@ export function renderGridEditor(container, model) {
 
             // Events
             row.querySelector('.seq-source').addEventListener('change', (e) => updateItem(index, 'source', e.target.value));
-            row.querySelector('.seq-type').addEventListener('input', (e) => updateItem(index, 'arrow', e.target.value));
-            row.querySelector('.seq-target').addEventListener('input', (e) => updateItem(index, 'target', e.target.value));
+
+            // Custom Arrow Selector Event
+            row.querySelector('.btn-arrow-type').addEventListener('click', (e) => {
+                e.stopPropagation(); // Prevent bubble
+                openArrowSelector(e, index, item.arrow);
+            });
+
+            row.querySelector('.seq-target').addEventListener('change', (e) => updateItem(index, 'target', e.target.value));
             row.querySelector('.seq-content').addEventListener('input', (e) => updateItem(index, 'content', e.target.value));
             row.querySelector('.btn-delete-s').addEventListener('click', () => deleteItem(index));
         } else {
@@ -273,6 +291,12 @@ function addItem() {
 
 function updateItem(index, field, value) {
     currentModel.items[index][field] = value;
+
+    // If updating arrow type, re-render to show new SVG icon
+    if (field === 'arrow') {
+        renderGridEditor(currentContainer, currentModel);
+    }
+
     triggerChange();
 }
 
@@ -280,4 +304,63 @@ function deleteItem(index) {
     currentModel.items.splice(index, 1);
     renderGridEditor(currentContainer, currentModel);
     triggerChange();
+}
+
+function openArrowSelector(event, index, currentVal) {
+    // Close existing
+    const existing = document.querySelector('.arrow-selector-popover');
+    if (existing) existing.remove();
+
+    const btn = event.currentTarget;
+    const rect = btn.getBoundingClientRect();
+
+    const popover = document.createElement('div');
+    popover.className = 'arrow-selector-popover';
+
+    // Position
+    popover.style.top = `${rect.bottom + window.scrollY + 4}px`;
+    popover.style.left = `${rect.left + window.scrollX}px`;
+
+    const labels = {
+        '->>': 'Solid / Arrow',
+        '-->>': 'Dotted / Arrow',
+        '-)': 'Solid / Open',
+        '--)': 'Dotted / Open',
+        '->': 'Solid / Line',
+        '-->': 'Dotted / Line',
+        '-x': 'Solid / Cross',
+        '--x': 'Dotted / Cross',
+        '<<->>': 'Solid / Bidirectional',
+        '<<-->>': 'Dotted / Bidirectional'
+    };
+
+    Object.keys(ARROW_SVGS).forEach(type => {
+        const option = document.createElement('div');
+        option.className = `arrow-option ${type === currentVal ? 'selected' : ''}`;
+        option.innerHTML = `
+            ${ARROW_SVGS[type]}
+            <span>${labels[type]}</span>
+        `;
+        option.onclick = (e) => {
+            e.stopPropagation();
+            updateItem(index, 'arrow', type);
+            popover.remove();
+        };
+        popover.appendChild(option);
+    });
+
+    document.body.appendChild(popover);
+
+    // Close on click outside
+    const closeHandler = (e) => {
+        if (!popover.contains(e.target) && e.target !== btn) {
+            popover.remove();
+            document.removeEventListener('click', closeHandler);
+        }
+    };
+
+    // Defer to next tick to avoid immediate close
+    setTimeout(() => {
+        document.addEventListener('click', closeHandler);
+    }, 0);
 }

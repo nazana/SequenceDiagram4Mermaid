@@ -16,10 +16,18 @@ mermaid.initialize({
         messageMargin: 35,
         mirrorActors: false,
         bottomMarginAdj: 1,
-        useMaxWidth: true,
+        useMaxWidth: false,
         fontFamily: "'JetBrains Mono', monospace",
         messageFontFamily: "'Inter', sans-serif",
         actorFontFamily: "'Inter', sans-serif"
+    },
+    themeVariables: {
+        lineColor: '#e2e8f0',
+        signalColor: '#e2e8f0',
+        signalTextColor: '#e2e8f0',
+        actorBorder: '#e2e8f0',
+        labelBoxBorderColor: '#e2e8f0',
+        actorTextColor: '#e2e8f0'
     }
 });
 
@@ -62,8 +70,8 @@ export function parseMermaidCode(code) {
     // Regex helpers
     // participant A as Alice
     const participantRegex = /^(participant|actor)\s+([^\s]+)(?:\s+as\s+(.+))?$/i;
-    // A->>B: text
-    const messageRegex = /^([^\s]+)\s*(-+>>?|--+>>?)\s*([^\s]+)\s*(?::\s*(.+))?$/;
+    // A->>B: text, A-)B: text, A-xB: text
+    const messageRegex = /^([^\s]+)\s*((?:<<-+(?:>>?))|(?:-+(?:>>?|x|\)|>)))\s*([^\s]+)\s*(?::\s*(.+))?$/;
     // Note right of A: text
     const noteRegex = /^Note\s+(right of|left of|over)\s+([^:]+)\s*:\s*(.+)$/i;
 
@@ -86,17 +94,29 @@ export function parseMermaidCode(code) {
         // Match Message
         const mMatch = line.match(messageRegex);
         if (mMatch) {
+            let arrow = mMatch[2];
+            // Normalize arrow to supported types
+            if (arrow.startsWith('<<')) {
+                const isDotted = arrow.includes('--');
+                arrow = isDotted ? '<<-->>' : '<<->>';
+            } else {
+                const isDotted = arrow.startsWith('--');
+                let suffix = '>'; // Default to Line
+                if (arrow.endsWith('>>')) suffix = '>>';
+                else if (arrow.endsWith(')')) suffix = ')';
+                else if (arrow.endsWith('x')) suffix = 'x';
+                // else if (arrow.endsWith('>')) suffix = '>'; // Already default
+
+                arrow = (isDotted ? '--' : '-') + suffix;
+            }
+
             items.push({
                 type: 'message',
                 source: mMatch[1],
-                arrow: mMatch[2],
+                arrow: arrow,
                 target: mMatch[3],
                 content: mMatch[4] || ''
             });
-            // Auto-add participants if implicit? 
-            // Mermaid allows implicit, but for our grid we might want explicit ones. 
-            // For now, let's just collect used IDs and add to participants if missing?
-            // Actually, keep it simple.
             return;
         }
 
@@ -136,7 +156,24 @@ export function generateMermaidCode(model) {
     // Items
     model.items.forEach(item => {
         if (item.type === 'message') {
-            code += `    ${item.source}${item.arrow}${item.target}: ${item.content}\n`;
+            let arrow = item.arrow;
+            // Safer normalize before generating code
+            if (arrow) {
+                if (arrow.startsWith('<<')) {
+                    const isDotted = arrow.includes('--');
+                    arrow = isDotted ? '<<-->>' : '<<->>';
+                } else {
+                    const isDotted = arrow.startsWith('--');
+                    let suffix = '>'; // Default
+                    if (arrow.endsWith('>>')) suffix = '>>';
+                    else if (arrow.endsWith(')')) suffix = ')';
+                    else if (arrow.endsWith('x')) suffix = 'x';
+                    arrow = (isDotted ? '--' : '-') + suffix;
+                }
+            } else {
+                arrow = '->>'; // Default fallback
+            }
+            code += `    ${item.source}${arrow}${item.target}: ${item.content}\n`;
         } else if (item.type === 'note') {
             code += `    Note ${item.position} ${item.target}: ${item.content}\n`;
         }
@@ -144,3 +181,23 @@ export function generateMermaidCode(model) {
 
     return code;
 }
+
+/**
+ * Sanitizes Mermaid code to fix common syntax errors (e.g. invalid arrow lengths).
+ * @param {string} code 
+ * @returns {string}
+ */
+export function sanitizeMermaidCode(code) {
+    if (!code) return code;
+
+    let sanitized = code;
+
+    // Fix arrows with too many dashes (e.g. --->, ---->, --->>, ---x, ---)) -> --suffix
+    // This normalizes accidentally long dotted arrows to standard dotted arrows.
+    sanitized = sanitized.replace(/---+(>>?|x|\)|>)/g, (match, suffix) => {
+        return '--' + suffix;
+    });
+
+    return sanitized;
+}
+
