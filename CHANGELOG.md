@@ -1,13 +1,13 @@
-# Changelog
+# 변경 이력 (Changelog)
 
-All notable changes to this project will be documented in this file.
+이 프로젝트의 모든 주요 변경 사항은 이 파일에 문서화됩니다.
 
 ## [Unreleased]
 
 ## [0.1.0] - 2025-12-13
-### Added
-- **Dual Editor**: Markdown and Grid editor with bi-directional synchronization.
-- **Mermaid Rendering**: Real-time diagram visualization with Panzoom (Zoom/Pan) support.
-- **Data Management**: LocalStorage-based save system with version history.
-- **UI/UX**: Premium dark theme, responsive layout, and collapsible sidebar.
-- **Dashboard**: Diagram list view with management features.
+### 추가됨
+- **듀얼 에디터**: 마크다운과 그리드 에디터 간 양방향 동기화 지원.
+- **Mermaid 렌더링**: Panzoom(줌/팬) 기능을 포함한 실시간 다이어그램 시각화.
+- **데이터 관리**: 로컬 스토리지 기반의 저장 시스템 및 버전 이력 관리.
+- **UI/UX**: 프리미엄 다크 테마, 반응형 레이아웃, 접이식 사이드바 구현.
+- **대시보드**: 다이어그램 목록 조회 및 관리 기능.
