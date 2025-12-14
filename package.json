@@ -1,0 +1,28 @@
+{
+    "name": "mermaid-sequence-editor",
+    "version": "1.0.0",
+    "description": "A visual editor for Mermaid Sequence Diagrams",
+    "main": "index.html",
+    "bin": {
+        "mermaid-editor": "./bin/cli.js"
+    },
+    "scripts": {
+        "start": "node bin/cli.js"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/nazana/SequenceDiagram4Mermaid.git"
+    },
+    "keywords": [
+        "mermaid",
+        "sequence-diagram",
+        "editor",
+        "visualizer"
+    ],
+    "author": "Nazana",
+    "license": "MIT",
+    "dependencies": {
+        "http-server": "^14.1.1",
+        "opener": "^1.5.2"
+    }
+}
