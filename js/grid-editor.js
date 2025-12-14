@@ -67,8 +67,8 @@ export function renderGridEditor(container, model) {
     pHeader.className = 'participant-header';
     pHeader.style.display = 'flex';
     pHeader.style.gap = '0.5rem';
-    pHeader.style.padding = '0.5rem'; // Remove extra left padding, use span instead
-    pHeader.style.backgroundColor = 'var(--color-bg-hover)'; // Match sequence header
+    pHeader.style.padding = '0.5rem';
+    pHeader.style.backgroundColor = 'var(--color-bg-hover)';
     pHeader.style.borderBottom = '1px solid var(--color-border)';
     pHeader.style.color = 'var(--color-text-secondary)';
     pHeader.style.fontSize = '0.85rem';
@@ -82,17 +82,15 @@ export function renderGridEditor(container, model) {
     `;
     pWrapper.appendChild(pHeader);
 
-    // Append wrapper to content div instead of section directly
     pContent.appendChild(pWrapper);
 
     const pList = document.createElement('div');
     pList.className = 'participant-list';
-    pList.style.marginBottom = '0'; // Remove default margin if any
+    pList.style.marginBottom = '0';
 
     model.participants.forEach((p, index) => {
         const item = document.createElement('div');
         item.className = 'participant-item';
-        // Add data-id for sorting
         item.dataset.index = index;
 
         item.innerHTML = `
@@ -106,10 +104,8 @@ export function renderGridEditor(container, model) {
             <button class="btn-icon btn-sm btn-delete-p" data-index="${index}"><i class="ph ph-trash"></i></button>
         `;
 
-        // Events
         const inputs = item.querySelectorAll('input, select');
         inputs.forEach(inp => inp.addEventListener('input', (e) => {
-            // Handle select change (input event works for select too in modern browsers, or use 'change')
             const cls = e.target.classList;
             let field = 'name';
             if (cls.contains('p-id')) field = 'logicalId';
@@ -119,23 +115,18 @@ export function renderGridEditor(container, model) {
         }));
 
         item.querySelector('.btn-delete-p').addEventListener('click', () => deleteParticipant(index));
-
         pList.appendChild(item);
     });
 
     pWrapper.appendChild(pList);
 
-    // Init Sortable for Participants
     if (typeof Sortable !== 'undefined') {
         new Sortable(pList, {
             handle: '.col-handle',
             animation: 150,
             onEnd: function (evt) {
-                // Reorder model.participants
                 const item = currentModel.participants.splice(evt.oldIndex, 1)[0];
                 currentModel.participants.splice(evt.newIndex, 0, item);
-
-                // Re-render
                 renderGridEditor(currentContainer, currentModel);
                 triggerChange();
             }
@@ -148,8 +139,8 @@ export function renderGridEditor(container, model) {
     btnAddP.innerHTML = `<i class="ph ph-plus"></i> 참여자 추가`;
     btnAddP.onclick = addParticipant;
 
-    pSection.appendChild(btnAddP); // Will move to pContent below
-    pContent.appendChild(btnAddP); // Correctly append to content div
+    pSection.appendChild(btnAddP);
+    pContent.appendChild(btnAddP);
     wrapper.appendChild(pSection);
 
     // 2. Sequence Section
@@ -172,20 +163,15 @@ export function renderGridEditor(container, model) {
     const sContent = sSection.querySelector('.section-content');
     const sIcon = sHeaderToggle.querySelector('.ph-caret-down');
 
-    // Autonumber Logic
     const btnAutonumber = sSection.querySelector('#btn-autonumber');
     btnAutonumber.addEventListener('click', (e) => {
-        // Toggle logic
         if (!model.config) model.config = {};
         model.config.autonumber = !model.config.autonumber;
 
-        // Update UI
         const isActive = model.config.autonumber;
         btnAutonumber.classList.toggle('active', isActive);
         btnAutonumber.style.color = isActive ? 'var(--color-primary)' : 'var(--color-text-secondary)';
-
-        // Render & Trigger
-        triggerChange(); // This will regenerate code with/without autonumber and update markdown/canvas
+        triggerChange();
     });
 
     sHeaderToggle.addEventListener('click', () => {
@@ -194,17 +180,15 @@ export function renderGridEditor(container, model) {
         sIcon.style.transform = isHidden ? 'rotate(0deg)' : 'rotate(180deg)';
     });
 
-    // Container for visual unity
     const sWrapper = document.createElement('div');
     sWrapper.className = 'sequence-table-wrapper';
     sWrapper.style.border = '1px solid var(--color-border)';
     sWrapper.style.borderRadius = 'var(--border-radius)';
     sWrapper.style.overflow = 'hidden';
 
-    // Header (Outside Sortable Container)
     const sHeader = document.createElement('div');
-    sHeader.className = 'sequence-header'; // Changed class name slightly to avoid default table styles if any
-    sHeader.style.backgroundColor = 'var(--color-bg-hover)'; // Match sequence header design
+    sHeader.className = 'sequence-header';
+    sHeader.style.backgroundColor = 'var(--color-bg-hover)';
     sHeader.style.borderBottom = '1px solid var(--color-border)';
     sHeader.innerHTML = `
         <div class="seq-row seq-header" style="border: none;">
@@ -223,36 +207,75 @@ export function renderGridEditor(container, model) {
 
     const sTable = document.createElement('div');
     sTable.className = 'sequence-table';
-    sTable.style.border = 'none'; // Remove component border
-    sTable.style.borderRadius = '0'; // Remove radius
+    sTable.style.border = 'none';
+    sTable.style.borderRadius = '0';
 
-    // Calculate Brackets
+    // Brackets Calculation (Visual Only, Logic is handled separately per button)
     const brackets = [];
-    const openActivations = []; // Stack of { startRow, level }
+    const openActivations = [];
+    const activeCounts = {};
 
     model.items.forEach((item, idx) => {
         const act = item.activation;
         if (act) {
-            if (act.deactivate && openActivations.length > 0) {
-                const last = openActivations.pop();
-                brackets.push({ start: last.startRow, end: idx, level: last.level });
+            if (act.deactivate) {
+                if (activeCounts[item.source] > 0) activeCounts[item.source]--;
+                if (openActivations.length > 0) {
+                    const last = openActivations.pop();
+                    brackets.push({ start: last.startRow, end: idx, level: last.level });
+                }
             }
             if (act.activate) {
+                activeCounts[item.target] = (activeCounts[item.target] || 0) + 1;
                 openActivations.push({ startRow: idx, level: openActivations.length });
             }
         }
     });
-    // Close remaining
     openActivations.forEach(a => brackets.push({ start: a.startRow, end: model.items.length - 1, level: a.level }));
+
 
     model.items.forEach((item, index) => {
         const row = document.createElement('div');
         row.className = 'seq-row';
-        row.dataset.index = index; // real index in model
-        row.style.borderBottom = '1px solid var(--color-border)'; // Inner separators
-        if (index === model.items.length - 1) row.style.borderBottom = 'none'; // Last item no border
+        row.dataset.index = index;
+        row.style.borderBottom = '1px solid var(--color-border)';
+        if (index === model.items.length - 1) row.style.borderBottom = 'none';
 
         if (item.type === 'message') {
+            // 1. Validation for Deactivate Button (-)
+            const isDeactivateActive = !!item.activation?.deactivate;
+            // Check: Is Source currently active at this point?
+            const isSourceActive = checkIsActiveAt(model, index, item.source);
+
+            // Check: If we turn ON deactivate (from OFF state), is it safe? (Does it break future?)
+            let isSafeToEnableDeactivate = true;
+            if (!isDeactivateActive) {
+                // Determine if enabling Deactivate here would break future rows
+                isSafeToEnableDeactivate = checkSimulation(model, index, { deactivate: true }, item.source);
+            }
+
+            const canDeactivate = isDeactivateActive || (isSourceActive && isSafeToEnableDeactivate);
+            // Hint text
+            let deactivateTitle = "Deactivate Source (-)";
+            if (!isSourceActive) deactivateTitle = "Inactive (nothing to deactivate)";
+            else if (!isSafeToEnableDeactivate) deactivateTitle = "Cannot deactivate (breaks future flow)";
+
+
+            // 2. Validation for Activate Button (+)
+            const isActivateActive = !!item.activation?.activate;
+
+            // Check: If we turn OFF activate (from ON state), is it safe?
+            let isSafeToDisableActivate = true;
+            if (isActivateActive) {
+                isSafeToDisableActivate = checkSimulation(model, index, { activate: false }, item.target);
+            }
+
+            const canActivate = !isActivateActive || isSafeToDisableActivate;
+            // Hint text
+            let activateTitle = "Activate Target (+)";
+            if (isActivateActive && !isSafeToDisableActivate) activateTitle = "Cannot disable (required by later deactivate)";
+
+
             row.innerHTML = `
                 <span class="col-handle"><i class="ph ph-dots-six-vertical"></i></span>
                 <span class="col-activation" style="width: 30px; position: relative;">
@@ -261,8 +284,10 @@ export function renderGridEditor(container, model) {
                 <span class="col-no grid-col-no">${index + 1}</span>
 
                 <span class="col-source" style="display: flex; align-items: center; gap: 4px;">
-                    <button class="btn-icon btn-sm btn-deactivate ${item.activation?.deactivate ? 'active' : ''}" title="Deactivate Source (-)" style="padding: 2px; color: ${item.activation?.deactivate ? 'var(--color-danger)' : 'var(--color-text-secondary)'}">
-                        <i class="ph ${item.activation?.deactivate ? 'ph-minus-circle-fill' : 'ph-minus-circle'}"></i>
+                    <button class="btn-icon btn-sm btn-deactivate ${isDeactivateActive ? 'active' : ''}" 
+                        title="${deactivateTitle}"
+                        ${!canDeactivate ? 'disabled' : ''}>
+                        <i class="ph ph-minus-circle"></i>
                     </button>
                     <select class="input-sm seq-source" style="flex:1">
                         ${getParticipantOptions(model.participants, item.source)}
@@ -277,8 +302,10 @@ export function renderGridEditor(container, model) {
                      <select class="input-sm seq-target" style="flex:1">
                         ${getParticipantOptions(model.participants, item.target)}
                     </select>
-                    <button class="btn-icon btn-sm btn-activate ${item.activation?.activate ? 'active' : ''}" title="Activate Target (+)" style="padding: 2px; color: ${item.activation?.activate ? 'var(--color-success)' : 'var(--color-text-secondary)'}">
-                        <i class="ph ${item.activation?.activate ? 'ph-plus-circle-fill' : 'ph-plus-circle'}"></i>
+                    <button class="btn-icon btn-sm btn-activate ${isActivateActive ? 'active' : ''}" 
+                        title="${activateTitle}"
+                        ${!canActivate ? 'disabled' : ''}>
+                        <i class="ph ph-plus-circle"></i>
                     </button>
                 </span>
                 <span class="col-type">
@@ -292,16 +319,13 @@ export function renderGridEditor(container, model) {
                 </span>
             `;
 
-            // Events
             row.querySelector('.seq-source').addEventListener('change', (e) => updateItem(index, 'source', e.target.value));
 
-            // Custom Arrow Selector Event
             row.querySelector('.btn-arrow-type').addEventListener('click', (e) => {
-                e.stopPropagation(); // Prevent bubble
+                e.stopPropagation();
                 openArrowSelector(e, index, item.arrow);
             });
 
-            // Swap Event
             const btnSwap = row.querySelector('.btn-swap');
             if (btnSwap) {
                 btnSwap.addEventListener('click', (e) => {
@@ -309,6 +333,8 @@ export function renderGridEditor(container, model) {
                     const temp = item.source;
                     item.source = item.target;
                     item.target = temp;
+                    // Reset
+                    item.activation = { activate: false, deactivate: false };
                     renderGridEditor(container, currentModel);
                     triggerChange();
                 });
@@ -318,22 +344,27 @@ export function renderGridEditor(container, model) {
             row.querySelector('.seq-content').addEventListener('input', (e) => updateItem(index, 'content', e.target.value));
             row.querySelector('.btn-delete-s').addEventListener('click', () => deleteItem(index));
 
-            // Activate/Deactivate Handlers
-            row.querySelector('.btn-deactivate').addEventListener('click', (e) => {
-                e.stopPropagation();
-                const current = item.activation || { activate: false, deactivate: false };
-                updateItem(index, 'activation', { ...current, deactivate: !current.deactivate });
-            });
-            row.querySelector('.btn-activate').addEventListener('click', (e) => {
-                e.stopPropagation();
-                const current = item.activation || { activate: false, deactivate: false };
-                updateItem(index, 'activation', { ...current, activate: !current.activate });
-            });
+            const btnDeactivate = row.querySelector('.btn-deactivate');
+            if (!btnDeactivate.disabled) {
+                btnDeactivate.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const current = item.activation || { activate: false, deactivate: false };
+                    updateItem(index, 'activation', { ...current, deactivate: !current.deactivate });
+                });
+            }
+
+            const btnActivate = row.querySelector('.btn-activate');
+            if (!btnActivate.disabled) {
+                btnActivate.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const current = item.activation || { activate: false, deactivate: false };
+                    updateItem(index, 'activation', { ...current, activate: !current.activate });
+                });
+            }
         } else {
-            // Other types (Note, Loop, etc.) - Readonly for now
             row.innerHTML = `
                 <span class="col-handle"><i class="ph ph-dots-six-vertical"></i></span>
-                <span class="col-activation" style="width: 30px; position: relative;">${renderActivationLines(index, brackets)}</span>
+                <span class="col-activation" style="width: 30px; position: position;">${renderActivationLines(index, brackets)}</span>
                 <span class="col-no grid-col-no">${index + 1}</span>
                 <span class="col-msg" style="flex: 1; padding: 0 1rem; color: var(--color-text-secondary); font-style: italic;">
                     [${item.type}] ${item.content || ''}
@@ -345,11 +376,8 @@ export function renderGridEditor(container, model) {
             row.querySelector('.btn-delete-s').addEventListener('click', () => deleteItem(index));
         }
 
-        // Row Click for Highlighting
         row.addEventListener('click', (e) => {
-            // Ignore input clicks
             if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'BUTTON' || e.target.closest('button')) return;
-
             if (window.onGridRowSelect) {
                 window.onGridRowSelect(index);
             }
@@ -358,17 +386,13 @@ export function renderGridEditor(container, model) {
         sTable.appendChild(row);
     });
 
-    // Init Sortable for Sequence Items
     if (typeof Sortable !== 'undefined') {
         new Sortable(sTable, {
             handle: '.col-handle',
             animation: 150,
             onEnd: function (evt) {
-                // Reorder model.items using splice
                 const item = currentModel.items.splice(evt.oldIndex, 1)[0];
                 currentModel.items.splice(evt.newIndex, 0, item);
-
-                // Re-render (Delayed)
                 setTimeout(() => {
                     renderGridEditor(currentContainer, currentModel);
                     triggerChange();
@@ -392,6 +416,49 @@ export function renderGridEditor(container, model) {
     container.appendChild(wrapper);
 }
 
+// ** Logic for Validation: SIMULATION **
+// Checks if the active count for `participantId` is > 0 at the BEGINNING of `rowIndex`
+function checkIsActiveAt(model, rowIndex, participantId) {
+    let count = 0;
+    for (let i = 0; i < rowIndex; i++) {
+        const item = model.items[i];
+        if (item.activation?.deactivate && item.source === participantId) count--;
+        if (item.activation?.activate && item.target === participantId) count++;
+    }
+    return count > 0;
+}
+
+// Checks if the simulation is VALID for `participantId` if we apply `overrideState` at `overrideIndex`.
+function checkSimulation(model, overrideIndex, overrideState, participantId) {
+    let count = 0;
+
+    for (let i = 0; i < model.items.length; i++) {
+        const item = model.items[i];
+
+        let deactivate = item.activation?.deactivate;
+        let activate = item.activation?.activate;
+
+        // Apply override
+        if (i === overrideIndex) {
+            if (overrideState.deactivate !== undefined) deactivate = overrideState.deactivate;
+            if (overrideState.activate !== undefined) activate = overrideState.activate;
+        }
+
+        // 1. Deactivate (Source) Logic
+        if (deactivate && item.source === participantId) {
+            if (count <= 0) return false; // Invalid: Deactivating inactive participant!
+            count--;
+        }
+
+        // 2. Activate (Target) Logic
+        if (activate && item.target === participantId) {
+            count++;
+        }
+    }
+
+    return true; // Survived the simulation
+}
+
 function getParticipantOptions(participants, selectedId) {
     return participants.map(p => {
         const logicalId = p.logicalId || p.id;
@@ -400,7 +467,6 @@ function getParticipantOptions(participants, selectedId) {
     }).join('');
 }
 
-// Actions
 function triggerChange() {
     if (onChangeCallback) onChangeCallback(currentModel);
 }
@@ -437,8 +503,15 @@ function addItem() {
 }
 
 function updateItem(index, field, value) {
+    if (field === 'source' || field === 'target') {
+        const item = currentModel.items[index];
+        if (item[field] !== value) {
+            item.activation = { activate: false, deactivate: false };
+        }
+    }
+
     currentModel.items[index][field] = value;
-    if (field === 'arrow' || field === 'activation') {
+    if (field === 'arrow' || field === 'activation' || field === 'source' || field === 'target') {
         renderGridEditor(currentContainer, currentModel);
     }
     triggerChange();

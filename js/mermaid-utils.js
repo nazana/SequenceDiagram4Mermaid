@@ -225,8 +225,10 @@ export function generateMermaidCode(model) {
             // Add activation suffix
             let activationSuffix = '';
             if (item.activation) {
-                if (item.activation.activate) activationSuffix += '+';
+                // Order matters: Deactivate Source (-) first, then Activate Target (+)
+                // Example: ->>-+ (Deactivate Source, Activate Target)
                 if (item.activation.deactivate) activationSuffix += '-';
+                if (item.activation.activate) activationSuffix += '+';
             }
 
             // Add spaces around arrow for better parsing stability

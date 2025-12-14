@@ -581,6 +581,30 @@ body {
     color: var(--color-text-primary);
 }
 
+/* Activation Buttons */
+.btn-activate,
+.btn-deactivate {
+    border-radius: 4px;
+    /* Slightly squarish for better click area */
+    transition: all 0.2s ease;
+}
+
+.btn-activate.active {
+    background-color: var(--color-success) !important;
+    color: white !important;
+}
+
+.btn-deactivate.active {
+    background-color: var(--color-danger) !important;
+    color: white !important;
+}
+
+.btn-activate:disabled,
+.btn-deactivate:disabled {
+    opacity: 0.3;
+    pointer-events: none;
+}
+
 
 .btn-arrow-type:hover {
     border-color: var(--color-text-secondary);
