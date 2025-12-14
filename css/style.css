@@ -492,19 +492,17 @@ body {
     justify-content: center;
     cursor: grab;
     color: var(--color-text-secondary);
-    order: 0;
 }
 
 .col-no {
     width: 40px;
     text-align: center;
     color: var(--color-text-secondary);
-    order: 1;
 }
 
 .col-source {
     width: 120px;
-    order: 2;
+    width: 120px;
 }
 
 .col-swap {
@@ -512,12 +510,12 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    order: 3;
+    align-items: center;
 }
 
 .col-target {
     width: 120px;
-    order: 4;
+    width: 120px;
 }
 
 .col-type {
@@ -525,19 +523,19 @@ body {
     display: flex;
     align-items: center;
     gap: 4px;
-    order: 5;
+    gap: 4px;
 }
 
 .col-msg {
     flex: 1;
-    order: 6;
+    flex: 1;
 }
 
 .col-actions {
     width: 40px;
     display: flex;
     justify-content: center;
-    order: 7;
+    justify-content: center;
 }
 
 /* Custom Arrow Select */

@@ -6,6 +6,12 @@ let currentModel = null;
 let onChangeCallback = null;
 let currentContainer = null; // Store container for re-rendering
 
+// Persist view state across re-renders
+const viewState = {
+    participantsExpanded: true,
+    sequenceExpanded: true
+};
+
 // SVG Definitions for Arrows
 const ARROW_SVGS = {
     '->>': `<svg viewBox="0 0 80 14" fill="none" class="arrow-svg"><path d="M20 7H60" stroke="currentColor" stroke-width="2"/><path d="M60 7L50 2V12L60 7Z" fill="currentColor"/></svg>`,
@@ -48,13 +54,15 @@ export function renderGridEditor(container, model) {
     const pContent = pSection.querySelector('.section-content');
     const pIcon = pHeaderToggle.querySelector('i');
 
+    pContent.style.display = viewState.participantsExpanded ? 'block' : 'none';
+    pIcon.style.transform = viewState.participantsExpanded ? 'rotate(180deg)' : 'rotate(0deg)';
+
     pHeaderToggle.addEventListener('click', () => {
-        const isHidden = pContent.style.display === 'none';
-        pContent.style.display = isHidden ? 'block' : 'none';
-        pIcon.style.transform = isHidden ? 'rotate(0deg)' : 'rotate(180deg)'; // Rotate 180 for up
+        viewState.participantsExpanded = !viewState.participantsExpanded;
+        pContent.style.display = viewState.participantsExpanded ? 'block' : 'none';
+        pIcon.style.transform = viewState.participantsExpanded ? 'rotate(180deg)' : 'rotate(0deg)';
     });
 
-    // Wrapper for Visual Unity
     const pWrapper = document.createElement('div');
     pWrapper.className = 'participant-table-wrapper';
     pWrapper.style.border = '1px solid var(--color-border)';
@@ -62,7 +70,6 @@ export function renderGridEditor(container, model) {
     pWrapper.style.overflow = 'hidden';
     pWrapper.style.marginBottom = '0.5rem';
 
-    // Header for Participants
     const pHeader = document.createElement('div');
     pHeader.className = 'participant-header';
     pHeader.style.display = 'flex';
@@ -73,10 +80,14 @@ export function renderGridEditor(container, model) {
     pHeader.style.color = 'var(--color-text-secondary)';
     pHeader.style.fontSize = '0.85rem';
     pHeader.style.fontWeight = '600';
+
+    // Ordered: Handle > No > Type > ID > Name
+    // Spacer Removed
     pHeader.innerHTML = `
         <span class="col-handle"></span>
-        <span style="width: 80px;">ID</span>
+        <span class="col-no grid-col-no" style="font-weight:600">No.</span>
         <span style="width: 90px;">Type</span>
+        <span style="width: 80px;">ID</span>
         <span style="flex: 1;">표시 이름 (Name)</span>
         <span style="width: 28px;"></span> 
     `;
@@ -95,12 +106,13 @@ export function renderGridEditor(container, model) {
 
         item.innerHTML = `
             <span class="col-handle"><i class="ph ph-dots-six-vertical"></i></span>
-            <input type="text" class="input-sm p-id" value="${p.logicalId || p.id}" placeholder="ID (Logical)">
+            <span class="col-no grid-col-no">${index + 1}</span>
             <select class="input-sm p-type" style="width: 90px;">
                 <option value="participant" ${p.type === 'participant' ? 'selected' : ''}>Participant</option>
                 <option value="actor" ${p.type === 'actor' ? 'selected' : ''}>Actor</option>
             </select>
-            <input type="text" class="input-sm p-name" value="${p.name || ''}" placeholder="Name (Display)">
+            <input type="text" class="input-sm p-id" style="width: 80px;" value="${p.logicalId || p.id}" placeholder="ID">
+            <input type="text" class="input-sm p-name" style="flex: 1;" value="${p.name || ''}" placeholder="Name (Display)">
             <button class="btn-icon btn-sm btn-delete-p" data-index="${index}"><i class="ph ph-trash"></i></button>
         `;
 
@@ -163,6 +175,9 @@ export function renderGridEditor(container, model) {
     const sContent = sSection.querySelector('.section-content');
     const sIcon = sHeaderToggle.querySelector('.ph-caret-down');
 
+    sContent.style.display = viewState.sequenceExpanded ? 'block' : 'none';
+    sIcon.style.transform = viewState.sequenceExpanded ? 'rotate(180deg)' : 'rotate(0deg)';
+
     const btnAutonumber = sSection.querySelector('#btn-autonumber');
     btnAutonumber.addEventListener('click', (e) => {
         if (!model.config) model.config = {};
@@ -175,9 +190,9 @@ export function renderGridEditor(container, model) {
     });
 
     sHeaderToggle.addEventListener('click', () => {
-        const isHidden = sContent.style.display === 'none';
-        sContent.style.display = isHidden ? 'block' : 'none';
-        sIcon.style.transform = isHidden ? 'rotate(0deg)' : 'rotate(180deg)';
+        viewState.sequenceExpanded = !viewState.sequenceExpanded;
+        sContent.style.display = viewState.sequenceExpanded ? 'block' : 'none';
+        sIcon.style.transform = viewState.sequenceExpanded ? 'rotate(180deg)' : 'rotate(0deg)';
     });
 
     const sWrapper = document.createElement('div');
@@ -186,6 +201,8 @@ export function renderGridEditor(container, model) {
     sWrapper.style.borderRadius = 'var(--border-radius)';
     sWrapper.style.overflow = 'hidden';
 
+    // Sequence Header: Ordered to match Participants
+    // Removed col-activation
     const sHeader = document.createElement('div');
     sHeader.className = 'sequence-header';
     sHeader.style.backgroundColor = 'var(--color-bg-hover)';
@@ -193,7 +210,6 @@ export function renderGridEditor(container, model) {
     sHeader.innerHTML = `
         <div class="seq-row seq-header" style="border: none;">
             <span class="col-handle"></span>
-            <span class="col-activation" style="width: 30px;"></span>
             <span class="col-no grid-col-no" style="font-weight:600">No.</span>
             <span class="col-source">Source</span>
             <span class="col-swap"></span>
@@ -210,7 +226,7 @@ export function renderGridEditor(container, model) {
     sTable.style.border = 'none';
     sTable.style.borderRadius = '0';
 
-    // Brackets Calculation (Visual Only, Logic is handled separately per button)
+    // Brackets Calculation
     const brackets = [];
     const openActivations = [];
     const activeCounts = {};
@@ -242,43 +258,38 @@ export function renderGridEditor(container, model) {
         if (index === model.items.length - 1) row.style.borderBottom = 'none';
 
         if (item.type === 'message') {
-            // 1. Validation for Deactivate Button (-)
+            // Validation Logic
             const isDeactivateActive = !!item.activation?.deactivate;
-            // Check: Is Source currently active at this point?
             const isSourceActive = checkIsActiveAt(model, index, item.source);
 
-            // Check: If we turn ON deactivate (from OFF state), is it safe? (Does it break future?)
             let isSafeToEnableDeactivate = true;
             if (!isDeactivateActive) {
-                // Determine if enabling Deactivate here would break future rows
                 isSafeToEnableDeactivate = checkSimulation(model, index, { deactivate: true }, item.source);
             }
 
             const canDeactivate = isDeactivateActive || (isSourceActive && isSafeToEnableDeactivate);
-            // Hint text
+
             let deactivateTitle = "Deactivate Source (-)";
             if (!isSourceActive) deactivateTitle = "Inactive (nothing to deactivate)";
             else if (!isSafeToEnableDeactivate) deactivateTitle = "Cannot deactivate (breaks future flow)";
 
-
-            // 2. Validation for Activate Button (+)
             const isActivateActive = !!item.activation?.activate;
-
-            // Check: If we turn OFF activate (from ON state), is it safe?
             let isSafeToDisableActivate = true;
             if (isActivateActive) {
                 isSafeToDisableActivate = checkSimulation(model, index, { activate: false }, item.target);
             }
 
             const canActivate = !isActivateActive || isSafeToDisableActivate;
-            // Hint text
             let activateTitle = "Activate Target (+)";
             if (isActivateActive && !isSafeToDisableActivate) activateTitle = "Cannot disable (required by later deactivate)";
 
 
+            // Render Row
+            // Merged Activation Lines into col-handle
+            // Adjust SVG x position slightly to avoid overlap with handle dots if possible, or just overlay
             row.innerHTML = `
-                <span class="col-handle"><i class="ph ph-dots-six-vertical"></i></span>
-                <span class="col-activation" style="width: 30px; position: relative;">
+                <span class="col-handle" style="position: relative;">
+                    <i class="ph ph-dots-six-vertical"></i>
                     ${renderActivationLines(index, brackets)}
                 </span>
                 <span class="col-no grid-col-no">${index + 1}</span>
@@ -333,7 +344,6 @@ export function renderGridEditor(container, model) {
                     const temp = item.source;
                     item.source = item.target;
                     item.target = temp;
-                    // Reset
                     item.activation = { activate: false, deactivate: false };
                     renderGridEditor(container, currentModel);
                     triggerChange();
@@ -363,8 +373,10 @@ export function renderGridEditor(container, model) {
             }
         } else {
             row.innerHTML = `
-                <span class="col-handle"><i class="ph ph-dots-six-vertical"></i></span>
-                <span class="col-activation" style="width: 30px; position: position;">${renderActivationLines(index, brackets)}</span>
+                <span class="col-handle" style="position: relative;">
+                    <i class="ph ph-dots-six-vertical"></i>
+                    ${renderActivationLines(index, brackets)}
+                </span>
                 <span class="col-no grid-col-no">${index + 1}</span>
                 <span class="col-msg" style="flex: 1; padding: 0 1rem; color: var(--color-text-secondary); font-style: italic;">
                     [${item.type}] ${item.content || ''}
@@ -416,8 +428,7 @@ export function renderGridEditor(container, model) {
     container.appendChild(wrapper);
 }
 
-// ** Logic for Validation: SIMULATION **
-// Checks if the active count for `participantId` is > 0 at the BEGINNING of `rowIndex`
+// ** Logic for Validation **
 function checkIsActiveAt(model, rowIndex, participantId) {
     let count = 0;
     for (let i = 0; i < rowIndex; i++) {
@@ -428,7 +439,6 @@ function checkIsActiveAt(model, rowIndex, participantId) {
     return count > 0;
 }
 
-// Checks if the simulation is VALID for `participantId` if we apply `overrideState` at `overrideIndex`.
 function checkSimulation(model, overrideIndex, overrideState, participantId) {
     let count = 0;
 
@@ -438,25 +448,21 @@ function checkSimulation(model, overrideIndex, overrideState, participantId) {
         let deactivate = item.activation?.deactivate;
         let activate = item.activation?.activate;
 
-        // Apply override
         if (i === overrideIndex) {
             if (overrideState.deactivate !== undefined) deactivate = overrideState.deactivate;
             if (overrideState.activate !== undefined) activate = overrideState.activate;
         }
 
-        // 1. Deactivate (Source) Logic
         if (deactivate && item.source === participantId) {
-            if (count <= 0) return false; // Invalid: Deactivating inactive participant!
+            if (count <= 0) return false;
             count--;
         }
 
-        // 2. Activate (Target) Logic
         if (activate && item.target === participantId) {
             count++;
         }
     }
-
-    return true; // Survived the simulation
+    return true;
 }
 
 function getParticipantOptions(participants, selectedId) {
@@ -583,20 +589,22 @@ function renderActivationLines(rowIndex, brackets) {
     const activeBrackets = brackets.filter(b => b.start <= rowIndex && b.end >= rowIndex);
     if (activeBrackets.length === 0) return '';
 
-    let svg = `<svg width="100%" height="100%" style="position:absolute; top:0; left:0; pointer-events:none;">`;
+    // SVG with overflow visible to allow drawing floating lines
+    let svg = `<svg width="100%" height="100%" style="position:absolute; top:0; left:20px; pointer-events:none; overflow:visible;">`;
 
     activeBrackets.forEach(b => {
-        const x = b.level * 8 + 6;
+        // x offset 
+        const x = b.level * 6;
         let path = '';
         const topY = 10;
         const bottomY = 36;
 
         if (b.start === rowIndex && b.end === rowIndex) {
-            path = `M${x + 6} ${topY} H${x} V${bottomY} H${x + 6}`;
+            path = `M${x + 4} ${topY} H${x} V${bottomY} H${x + 4}`;
         } else if (b.start === rowIndex) {
-            path = `M${x + 6} ${topY} H${x} V50`;
+            path = `M${x + 4} ${topY} H${x} V50`;
         } else if (b.end === rowIndex) {
-            path = `M${x} 0 V${bottomY} H${x + 6}`;
+            path = `M${x} 0 V${bottomY} H${x + 4}`;
         } else {
             path = `M${x} 0 V50`;
         }
