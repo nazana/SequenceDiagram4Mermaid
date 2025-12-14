@@ -557,7 +557,7 @@ function openArrowSelector(event, index, currentVal) {
 
     Object.keys(ARROW_SVGS).forEach(key => {
         const item = document.createElement('div');
-        item.className = 'arrow-selector-item';
+        item.className = 'arrow-option';
         if (key === currentVal) item.classList.add('selected');
 
         item.innerHTML = `
