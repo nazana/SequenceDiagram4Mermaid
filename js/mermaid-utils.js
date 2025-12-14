@@ -73,9 +73,9 @@ export function parseMermaidCode(code) {
     // participant A as Alice
     // participant A as [ID] Alice
     const participantRegex = /^(participant|actor)\s+([^\s]+)(?:\s+as\s+(.+))?$/i;
-    // A->>B: text, A-)B: text, A-xB: text
-    // Improved regex: use lazy match (+?) for source/target to handle "A->B" without spaces
-    const messageRegex = /^([^\s]+?)\s*((?:<<-+(?:>>?))|(?:-+(?:>>?|x|\)|>)))\s*([^\s]+?)(?::\s*(.+))?$/;
+    // A->>B: text, A->>+B: text
+    // Regex updated to capture activation suffix (+, -, or combinations like -+) after arrow
+    const messageRegex = /^([^\s]+?)\s*((?:<<-+(?:>>?))|(?:-+(?:>>?|x|\)|>)))([-+]*)\s*([^\s]+?)(?::\s*(.+))?$/;
     // Note right of A: text
     const noteRegex = /^Note\s+(right of|left of|over)\s+([^:]+)\s*:\s*(.+)$/i;
 
@@ -124,6 +124,7 @@ export function parseMermaidCode(code) {
         const mMatch = line.match(messageRegex);
         if (mMatch) {
             let arrow = mMatch[2];
+            const suffix = mMatch[3] || '';
 
             // Validate arrow
             if (!arrow || arrow.length < 2) arrow = '->>';
@@ -134,21 +135,25 @@ export function parseMermaidCode(code) {
                 arrow = isDotted ? '<<-->>' : '<<->>';
             } else {
                 const isDotted = arrow.startsWith('--');
-                let suffix = '>'; // Default to Line
-                if (arrow.endsWith('>>')) suffix = '>>';
-                else if (arrow.endsWith(')')) suffix = ')';
-                else if (arrow.endsWith('x')) suffix = 'x';
+                let suffixStr = '>'; // Default to Line
+                if (arrow.endsWith('>>')) suffixStr = '>>';
+                else if (arrow.endsWith(')')) suffixStr = ')';
+                else if (arrow.endsWith('x')) suffixStr = 'x';
                 // else if (arrow.endsWith('>')) suffix = '>'; // Already default
 
-                arrow = (isDotted ? '--' : '-') + suffix;
+                arrow = (isDotted ? '--' : '-') + suffixStr;
             }
 
             items.push({
                 type: 'message',
                 source: mMatch[1],
                 arrow: arrow,
-                target: mMatch[3],
-                content: (mMatch[4] || '').replace(/^\d+\.\s*/, '')
+                target: mMatch[4], // Index shifted due to new capture group
+                content: (mMatch[5] || '').replace(/^\d+\.\s*/, ''),
+                activation: {
+                    activate: suffix.includes('+'),
+                    deactivate: suffix.includes('-')
+                }
             });
             return;
         }
@@ -216,8 +221,16 @@ export function generateMermaidCode(model) {
             } else {
                 arrow = '->>'; // Default fallback
             }
+
+            // Add activation suffix
+            let activationSuffix = '';
+            if (item.activation) {
+                if (item.activation.activate) activationSuffix += '+';
+                if (item.activation.deactivate) activationSuffix += '-';
+            }
+
             // Add spaces around arrow for better parsing stability
-            code += `    ${item.source} ${arrow} ${item.target}: ${item.content}\n`;
+            code += `    ${item.source} ${arrow}${activationSuffix} ${item.target}: ${item.content}\n`;
         } else if (item.type === 'note') {
             code += `    Note ${item.position} ${item.target}: ${item.content}\n`;
         }

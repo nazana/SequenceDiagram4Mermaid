@@ -124,7 +124,6 @@ export function renderGridEditor(container, model) {
     });
 
     pWrapper.appendChild(pList);
-    // pSection.appendChild(pWrapper); // Moved to pContent
 
     // Init Sortable for Participants
     if (typeof Sortable !== 'undefined') {
@@ -210,6 +209,7 @@ export function renderGridEditor(container, model) {
     sHeader.innerHTML = `
         <div class="seq-row seq-header" style="border: none;">
             <span class="col-handle"></span>
+            <span class="col-activation" style="width: 30px;"></span>
             <span class="col-no grid-col-no" style="font-weight:600">No.</span>
             <span class="col-source">Source</span>
             <span class="col-swap"></span>
@@ -226,7 +226,24 @@ export function renderGridEditor(container, model) {
     sTable.style.border = 'none'; // Remove component border
     sTable.style.borderRadius = '0'; // Remove radius
 
-    // sTable does not need header logic anymore
+    // Calculate Brackets
+    const brackets = [];
+    const openActivations = []; // Stack of { startRow, level }
+
+    model.items.forEach((item, idx) => {
+        const act = item.activation;
+        if (act) {
+            if (act.deactivate && openActivations.length > 0) {
+                const last = openActivations.pop();
+                brackets.push({ start: last.startRow, end: idx, level: last.level });
+            }
+            if (act.activate) {
+                openActivations.push({ startRow: idx, level: openActivations.length });
+            }
+        }
+    });
+    // Close remaining
+    openActivations.forEach(a => brackets.push({ start: a.startRow, end: model.items.length - 1, level: a.level }));
 
     model.items.forEach((item, index) => {
         const row = document.createElement('div');
@@ -238,22 +255,31 @@ export function renderGridEditor(container, model) {
         if (item.type === 'message') {
             row.innerHTML = `
                 <span class="col-handle"><i class="ph ph-dots-six-vertical"></i></span>
+                <span class="col-activation" style="width: 30px; position: relative;">
+                    ${renderActivationLines(index, brackets)}
+                </span>
                 <span class="col-no grid-col-no">${index + 1}</span>
 
-                <span class="col-source">
-                    <select class="input-sm seq-source">
+                <span class="col-source" style="display: flex; align-items: center; gap: 4px;">
+                    <button class="btn-icon btn-sm btn-deactivate ${item.activation?.deactivate ? 'active' : ''}" title="Deactivate Source (-)" style="padding: 2px; color: ${item.activation?.deactivate ? 'var(--color-danger)' : 'var(--color-text-secondary)'}">
+                        <i class="ph ${item.activation?.deactivate ? 'ph-minus-circle-fill' : 'ph-minus-circle'}"></i>
+                    </button>
+                    <select class="input-sm seq-source" style="flex:1">
                         ${getParticipantOptions(model.participants, item.source)}
                     </select>
                 </span>
                 <span class="col-swap">
                     <button class="btn-swap" title="Swap Source/Target">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 256 256"><path d="M221.66,133.66l-40,40a8,8,0,0,1-11.32-11.32L204.69,128H136V40a8,8,0,0,1,16,0v80h52.69l-34.35-34.34a8,8,0,0,1,11.32-11.32l40,40A8,8,0,0,1,221.66,133.66Zm-59-19A8,8,0,0,0,168,112H120V40a8,8,0,0,0-16,0V112H51.31l34.35-34.34a8,8,0,0,0-11.32-11.32l-40,40a8,8,0,0,0,0,11.32l40,40a8,8,0,0,0,11.32-11.32L51.31,128H104v96a8,8,0,0,0,16,0V128h42.69Z"></path></svg>
+                        <i class="ph ph-arrows-left-right"></i>
                     </button>
                 </span>
-                <span class="col-target">
-                     <select class="input-sm seq-target">
+                <span class="col-target" style="display: flex; align-items: center; gap: 4px;">
+                     <select class="input-sm seq-target" style="flex:1">
                         ${getParticipantOptions(model.participants, item.target)}
                     </select>
+                    <button class="btn-icon btn-sm btn-activate ${item.activation?.activate ? 'active' : ''}" title="Activate Target (+)" style="padding: 2px; color: ${item.activation?.activate ? 'var(--color-success)' : 'var(--color-text-secondary)'}">
+                        <i class="ph ${item.activation?.activate ? 'ph-plus-circle-fill' : 'ph-plus-circle'}"></i>
+                    </button>
                 </span>
                 <span class="col-type">
                     <button class="btn-arrow-type" title="Change Line Type">
@@ -278,21 +304,11 @@ export function renderGridEditor(container, model) {
             // Swap Event
             const btnSwap = row.querySelector('.btn-swap');
             if (btnSwap) {
-                // Use SVG for icon, Phosphor icon seems missing/not displaying well with just class sometimes or SVG is safer
-                // Or I can use Phosphor class: <i class="ph ph-arrows-left-right"></i>
-                // The user requested functionality, I used SVG directly in HTML above for robustness.
-                // Let's replace SVG with Phosphor if consistent with other icons. 
-                // Wait, previous code used <i class="ph ph-..."></i>. Let's use Phosphor for consistency.
-                btnSwap.innerHTML = '<i class="ph ph-arrows-left-right"></i>';
-
                 btnSwap.addEventListener('click', (e) => {
                     e.stopPropagation();
                     const temp = item.source;
                     item.source = item.target;
                     item.target = temp;
-                    // We need to update the UI specifically or re-render
-                    // Simplest is to update the selects directly if we want to avoid full re-render for performance?
-                    // But re-render handles everything cleaner.
                     renderGridEditor(container, currentModel);
                     triggerChange();
                 });
@@ -301,10 +317,23 @@ export function renderGridEditor(container, model) {
             row.querySelector('.seq-target').addEventListener('change', (e) => updateItem(index, 'target', e.target.value));
             row.querySelector('.seq-content').addEventListener('input', (e) => updateItem(index, 'content', e.target.value));
             row.querySelector('.btn-delete-s').addEventListener('click', () => deleteItem(index));
+
+            // Activate/Deactivate Handlers
+            row.querySelector('.btn-deactivate').addEventListener('click', (e) => {
+                e.stopPropagation();
+                const current = item.activation || { activate: false, deactivate: false };
+                updateItem(index, 'activation', { ...current, deactivate: !current.deactivate });
+            });
+            row.querySelector('.btn-activate').addEventListener('click', (e) => {
+                e.stopPropagation();
+                const current = item.activation || { activate: false, deactivate: false };
+                updateItem(index, 'activation', { ...current, activate: !current.activate });
+            });
         } else {
             // Other types (Note, Loop, etc.) - Readonly for now
             row.innerHTML = `
                 <span class="col-handle"><i class="ph ph-dots-six-vertical"></i></span>
+                <span class="col-activation" style="width: 30px; position: relative;">${renderActivationLines(index, brackets)}</span>
                 <span class="col-no grid-col-no">${index + 1}</span>
                 <span class="col-msg" style="flex: 1; padding: 0 1rem; color: var(--color-text-secondary); font-style: italic;">
                     [${item.type}] ${item.content || ''}
@@ -315,8 +344,6 @@ export function renderGridEditor(container, model) {
             `;
             row.querySelector('.btn-delete-s').addEventListener('click', () => deleteItem(index));
         }
-
-
 
         // Row Click for Highlighting
         row.addEventListener('click', (e) => {
@@ -350,9 +377,7 @@ export function renderGridEditor(container, model) {
         });
     }
 
-    sWrapper.appendChild(sTable); // Put table inside wrapper
-    sWrapper.appendChild(sTable); // Put table inside wrapper
-    // sSection.appendChild(sWrapper); // Moved to sContent
+    sWrapper.appendChild(sTable);
     sContent.appendChild(sWrapper);
 
     const btnAddS = document.createElement('button');
@@ -361,7 +386,6 @@ export function renderGridEditor(container, model) {
     btnAddS.innerHTML = `<i class="ph ph-plus"></i> 메시지 추가`;
     btnAddS.onclick = addItem;
 
-    // sSection.appendChild(btnAddS); // Moved to sContent
     sContent.appendChild(btnAddS);
     wrapper.appendChild(sSection);
 
@@ -383,7 +407,6 @@ function triggerChange() {
 
 function addParticipant() {
     const id = `P${currentModel.participants.length + 1}`;
-    // Default Logical ID matches Key
     currentModel.participants.push({ id, logicalId: id, name: `Participant ${id}`, type: 'participant' });
     renderGridEditor(currentContainer, currentModel);
     triggerChange();
@@ -391,14 +414,11 @@ function addParticipant() {
 
 function updateParticipant(index, field, value) {
     currentModel.participants[index][field] = value;
-
-    // Update all select boxes in the sequence grid to reflect name changes
     const selects = currentContainer.querySelectorAll('.seq-source, .seq-target');
     selects.forEach(select => {
         const currentVal = select.value;
         select.innerHTML = getParticipantOptions(currentModel.participants, currentVal);
     });
-
     triggerChange();
 }
 
@@ -409,7 +429,6 @@ function deleteParticipant(index) {
 }
 
 function addItem() {
-    // Default to first two participants
     const source = currentModel.participants[0]?.id || 'A';
     const target = currentModel.participants[1]?.id || 'B';
     currentModel.items.push({ type: 'message', source, target, arrow: '->>', content: 'Message' });
@@ -419,12 +438,9 @@ function addItem() {
 
 function updateItem(index, field, value) {
     currentModel.items[index][field] = value;
-
-    // If updating arrow type, re-render to show new SVG icon
-    if (field === 'arrow') {
+    if (field === 'arrow' || field === 'activation') {
         renderGridEditor(currentContainer, currentModel);
     }
-
     triggerChange();
 }
 
@@ -435,7 +451,6 @@ function deleteItem(index) {
 }
 
 function openArrowSelector(event, index, currentVal) {
-    // Close existing
     const existing = document.querySelector('.arrow-selector-popover');
     if (existing) existing.remove();
 
@@ -445,7 +460,6 @@ function openArrowSelector(event, index, currentVal) {
     const popover = document.createElement('div');
     popover.className = 'arrow-selector-popover';
 
-    // Position
     popover.style.top = `${rect.bottom + window.scrollY + 4}px`;
     popover.style.left = `${rect.left + window.scrollX}px`;
 
@@ -458,37 +472,64 @@ function openArrowSelector(event, index, currentVal) {
         '-->': 'Dotted / Line',
         '-x': 'Solid / Cross',
         '--x': 'Dotted / Cross',
-        '<<->>': 'Solid / Bidirectional',
-        '<<-->>': 'Dotted / Bidirectional'
+        '<<->>': 'Solid / Bi-dir',
+        '<<-->>': 'Dotted / Bi-dir'
     };
 
-    Object.keys(ARROW_SVGS).forEach(type => {
-        const option = document.createElement('div');
-        option.className = `arrow-option ${type === currentVal ? 'selected' : ''}`;
-        option.innerHTML = `
-            ${ARROW_SVGS[type]}
-            <span>${labels[type]}</span>
+    Object.keys(ARROW_SVGS).forEach(key => {
+        const item = document.createElement('div');
+        item.className = 'arrow-selector-item';
+        if (key === currentVal) item.classList.add('selected');
+
+        item.innerHTML = `
+            <div style="width: 60px; display:flex; justify-content:center;">${ARROW_SVGS[key]}</div>
+            <span style="font-size: 0.8rem;">${labels[key] || key}</span>
         `;
-        option.onclick = (e) => {
+
+        item.addEventListener('click', (e) => {
             e.stopPropagation();
-            updateItem(index, 'arrow', type);
+            updateItem(index, 'arrow', key);
             popover.remove();
-        };
-        popover.appendChild(option);
+        });
+
+        popover.appendChild(item);
     });
 
     document.body.appendChild(popover);
 
-    // Close on click outside
     const closeHandler = (e) => {
-        if (!popover.contains(e.target) && e.target !== btn) {
+        if (!popover.contains(e.target) && e.target !== btn && !btn.contains(e.target)) {
             popover.remove();
-            document.removeEventListener('click', closeHandler);
+            document.removeEventListener('mousedown', closeHandler);
         }
     };
+    document.addEventListener('mousedown', closeHandler);
+}
 
-    // Defer to next tick to avoid immediate close
-    setTimeout(() => {
-        document.addEventListener('click', closeHandler);
-    }, 0);
+function renderActivationLines(rowIndex, brackets) {
+    const activeBrackets = brackets.filter(b => b.start <= rowIndex && b.end >= rowIndex);
+    if (activeBrackets.length === 0) return '';
+
+    let svg = `<svg width="100%" height="100%" style="position:absolute; top:0; left:0; pointer-events:none;">`;
+
+    activeBrackets.forEach(b => {
+        const x = b.level * 8 + 6;
+        let path = '';
+        const topY = 10;
+        const bottomY = 36;
+
+        if (b.start === rowIndex && b.end === rowIndex) {
+            path = `M${x + 6} ${topY} H${x} V${bottomY} H${x + 6}`;
+        } else if (b.start === rowIndex) {
+            path = `M${x + 6} ${topY} H${x} V50`;
+        } else if (b.end === rowIndex) {
+            path = `M${x} 0 V${bottomY} H${x + 6}`;
+        } else {
+            path = `M${x} 0 V50`;
+        }
+        svg += `<path d="${path}" stroke="currentColor" stroke-width="1.5" fill="none" class="activation-line" style="color: var(--color-text-tertiary);"/>`;
+    });
+
+    svg += `</svg>`;
+    return svg;
 }
