@@ -101,7 +101,7 @@ export async function showConfirm(message, title = '확인') {
 export async function showPrompt(message, defaultValue = '', title = '입력') {
     const content = `
         <p style="margin-bottom: 0.5rem;">${message}</p>
-        <input type="text" id="modal-prompt-input" class="input-text" value="${defaultValue}" style="width: 100%">
+        <input type="text" id="modal-prompt-input" class="input-text" value="${defaultValue}" style="width: 100%" autocomplete="off">
     `;
 
     const result = await openModal(title, content, [

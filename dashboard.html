@@ -157,6 +157,78 @@
             border-radius: var(--border-radius);
             border: 1px dashed var(--color-border);
         }
+
+        /* Folder Styles */
+        .folder-card {
+            background-color: var(--color-bg-panel);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            height: 100px;
+        }
+
+        .folder-card:hover {
+            border-color: var(--color-primary);
+            background-color: var(--color-bg-base);
+        }
+
+        .folder-icon {
+            font-size: 2rem;
+            color: var(--color-primary);
+            display: flex;
+            align-items: center;
+        }
+
+        .folder-info {
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .folder-name {
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .folder-count {
+            font-size: 0.8rem;
+            color: var(--color-text-secondary);
+        }
+
+        .breadcrumb {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            color: var(--color-text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .breadcrumb-item {
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .breadcrumb-item:hover {
+            color: var(--color-primary);
+        }
+
+        .breadcrumb-separator {
+            color: var(--color-text-muted);
+        }
+
+        .drop-target {
+            border: 2px dashed var(--color-primary) !important;
+            background-color: rgba(var(--color-primary-rgb), 0.1) !important;
+        }
     </style>
 </head>
 
@@ -179,7 +251,15 @@
             <div class="dashboard-container">
                 <div class="dashboard-header">
                     <h2>나의 다이어그램</h2>
-                    <a href="index.html" class="btn btn-primary"><i class="ph ph-plus"></i> 새로 만들기</a>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button onclick="handleCreateGroup()" class="btn"><i class="ph ph-folder-plus"></i> 새
+                            그룹</button>
+                        <a href="index.html" class="btn btn-primary"><i class="ph ph-plus"></i> 새로 만들기</a>
+                    </div>
+                </div>
+
+                <div id="breadcrumb-container" class="breadcrumb" style="display: none;">
+                    <!-- Injected via JS -->
                 </div>
 
                 <div class="dashboard-controls">
@@ -204,24 +284,29 @@
 
     <!-- Script -->
     <script type="module">
-        // Add cache busting param to force reload storage.js
-        import { getAllDiagrams, getCurrentUser, deleteDiagram } from './js/storage.js';
-        import { showAlert, showConfirm } from './js/ui-utils.js';
-        // import { renderMermaid } from './js/mermaid-utils.js'; // Not used for simple list yet
+        import {
+            getAllDiagrams, getCurrentUser, deleteDiagram,
+            getAllGroups, createGroup, deleteGroup, updateGroup, moveDiagram, getGroup
+        } from './js/storage.js';
+        import { showAlert, showConfirm, showPrompt } from './js/ui-utils.js';
 
         const listContainer = document.getElementById('diagram-list');
         const userDisplay = document.getElementById('user-display');
         const searchInput = document.getElementById('search-input');
         const sortSelect = document.getElementById('sort-select');
+        const breadcrumbContainer = document.getElementById('breadcrumb-container');
 
         let allDiagrams = [];
+        let allGroups = [];
+        let currentGroupId = null; // null = root
 
         async function init() {
             try {
                 const user = getCurrentUser();
                 userDisplay.textContent = user.name;
 
-                allDiagrams = getAllDiagrams();
+                loadData();
+                renderBreadcrumb();
                 filterAndRender();
 
                 // Events
@@ -229,64 +314,90 @@
                 sortSelect.addEventListener('change', filterAndRender);
             } catch (error) {
                 console.error('Dashboard init failed:', error);
-                if (typeof showAlert !== 'undefined') {
-                    showAlert('초기화 중 오류가 발생했습니다: ' + error.message, '오류');
-                } else {
-                    alert('Error: ' + error.message);
-                }
+                alert('초기화 중 오류가 발생했습니다: ' + error.message);
             }
         }
 
-        // ... (filterAndRender, renderList 생략, 기존 코드 유지)
-
-        // Expose to window for onclick
-        window.handleDelete = async (id) => {
-            const confirmed = await showConfirm('정말 삭제하시겠습니까? 복구할 수 없습니다.', '다이어그램 삭제');
-            if (confirmed) {
-                deleteDiagram(id);
-                // Refresh
-                allDiagrams = getAllDiagrams();
-                filterAndRender();
-            }
-        };
-
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', init);
-        } else {
-            init();
+        function loadData() {
+            allDiagrams = getAllDiagrams();
+            allGroups = getAllGroups();
         }
 
         function filterAndRender() {
             const keyword = searchInput.value.toLowerCase();
             const sortMode = sortSelect.value;
 
-            let filtered = allDiagrams.filter(d =>
-                d.title.toLowerCase().includes(keyword) ||
-                d.updatedBy.toLowerCase().includes(keyword)
-            );
+            // 1. Filter Items in Current Scope
+            let filteredDiagrams = allDiagrams.filter(d => {
+                const pId = d.groupId || null;
+                return pId === currentGroupId;
+            });
 
-            if (sortMode === 'newest') {
-                filtered.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
-            } else {
-                filtered.sort((a, b) => a.title.localeCompare(b.title));
+            let filteredGroups = allGroups.filter(g => {
+                const pId = g.parentId || null;
+                return pId === currentGroupId;
+            });
+
+            // 2. Apply Search
+            if (keyword) {
+                // If searching, search EVERYTHING (ignoring folders?) or search inside?
+                // Usually search flat list is better UX, but keeping folder structure is safer.
+                // Let's search inside current folder for now.
+                // OR: search across all?
+                // If keyword exists, maybe show flat results from everywhere?
+                // Let's stick to current folder search for simplicity first.
+                filteredDiagrams = filteredDiagrams.filter(d => d.title.toLowerCase().includes(keyword));
+                filteredGroups = filteredGroups.filter(g => g.name.toLowerCase().includes(keyword));
             }
 
-            renderList(filtered);
+            // 3. Sort
+            if (sortMode === 'newest') {
+                filteredDiagrams.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+                // Groups typically sorted by name or creation?
+                filteredGroups.sort((a, b) => b.createdAt - a.createdAt);
+            } else {
+                filteredDiagrams.sort((a, b) => a.title.localeCompare(b.title));
+                filteredGroups.sort((a, b) => a.name.localeCompare(b.name));
+            }
+
+            renderGrid(filteredGroups, filteredDiagrams);
         }
 
-        function renderList(diagrams) {
-            if (diagrams.length === 0) {
+        function renderGrid(groups, diagrams) {
+            if (groups.length === 0 && diagrams.length === 0) {
                 listContainer.innerHTML = `
                     <div class="empty-state">
-                        <i class="ph ph-files" style="font-size: 3rem; margin-bottom: 1rem;"></i>
-                        <p>저장된 다이어그램이 없습니다.</p>
+                        <i class="ph ph-folder-open" style="font-size: 3rem; margin-bottom: 1rem;"></i>
+                        <p>${currentGroupId ? '이 그룹은 비어있습니다.' : '저장된 다이어그램이 없습니다.'}</p>
                     </div>
                 `;
                 return;
             }
 
-            listContainer.innerHTML = diagrams.map(d => `
-                <div class="diagram-card" onclick="location.href='index.html?id=${d.id}'">
+            const groupHtml = groups.map(g => `
+                <div class="folder-card" 
+                     onclick="handleEnterGroup('${g.id}')"
+                     ondrop="handleDropOnGroup(event, '${g.id}')"
+                     ondragover="allowDrop(event)"
+                     ondragleave="handleDragLeave(event)">
+                    <div class="folder-icon">
+                        <i class="ph-fill ph-folder"></i>
+                    </div>
+                    <div class="folder-info">
+                        <div class="folder-name">${g.name}</div>
+                        <div class="folder-count"></div>
+                    </div>
+                     <button class="btn btn-sm btn-ghost" onclick="event.stopPropagation(); handleDeleteGroup('${g.id}')" title="삭제">
+                        <i class="ph ph-trash"></i>
+                    </button>
+                </div>
+            `).join('');
+
+            const diagramHtml = diagrams.map(d => `
+                <div class="diagram-card" 
+                     draggable="true" 
+                     ondragstart="handleDragStart(event, '${d.id}')"
+                     onclick="location.href='index.html?id=${d.id}'">
                     <div class="card-preview">
                         <i class="ph ph-image"></i>
                     </div>
@@ -305,14 +416,141 @@
                     </div>
                 </div>
             `).join('');
+
+            listContainer.innerHTML = groupHtml + diagramHtml;
         }
 
-        // Expose to window for onclick
+        function renderBreadcrumb() {
+            if (!currentGroupId) {
+                breadcrumbContainer.style.display = 'none';
+                return;
+            }
+
+            breadcrumbContainer.style.display = 'flex';
+
+            // Build path
+            // For now only 1 level nesting is common, but recursion supported
+            const path = [];
+            let curr = getGroup(currentGroupId);
+            while (curr) {
+                path.unshift(curr);
+                if (!curr.parentId) break;
+                curr = getGroup(curr.parentId);
+            }
+
+            let html = `
+                <div class="breadcrumb-item" onclick="handleEnterGroup(null)">
+                    <i class="ph ph-house"></i> Home
+                </div>
+            `;
+
+            path.forEach(g => {
+                html += `
+                    <div class="breadcrumb-separator"><i class="ph ph-caret-right"></i></div>
+                    <div class="breadcrumb-item" onclick="handleEnterGroup('${g.id}')">
+                        ${g.name}
+                    </div>
+                `;
+            });
+
+            // Add "Drop to move up" zone on parent
+            html += `
+                <div class="breadcrumb-separator" style="margin-left:auto;"></div>
+                <div class="breadcrumb-item" 
+                     ondrop="handleDropOnParent(event)" 
+                     ondragover="allowDrop(event)"
+                     style="font-size:0.8rem; color:var(--color-primary); border:1px dashed var(--color-primary); padding:2px 8px; border-radius:4px;">
+                     <i class="ph ph-arrow-u-up-left"></i> 상위로 이동
+                </div>
+            `;
+
+            breadcrumbContainer.innerHTML = html;
+        }
+
+        // Global Handlers
+        window.handleCreateGroup = async () => {
+            const name = await showPrompt('새 그룹 이름을 입력하세요:', '', '새 그룹 생성');
+            if (name) {
+                createGroup(name, currentGroupId);
+                loadData();
+                filterAndRender();
+            }
+        };
+
+        window.handleEnterGroup = (id) => {
+            currentGroupId = id;
+            renderBreadcrumb();
+            filterAndRender();
+        };
+
+        window.handleDeleteGroup = async (id) => {
+            if (confirm('그룹을 삭제하시겠습니까? 내부의 다이어그램은 최상위(Home)로 이동됩니다.')) {
+                deleteGroup(id);
+                loadData();
+                filterAndRender();
+            }
+        };
+
         window.handleDelete = async (id) => {
             if (confirm('정말 삭제하시겠습니까? 복구할 수 없습니다.')) {
                 deleteDiagram(id);
-                // Refresh
-                allDiagrams = getAllDiagrams();
+                loadData();
+                filterAndRender();
+            }
+        };
+
+        // Drag & Drop
+        window.handleDragStart = (e, id) => {
+            e.dataTransfer.setData('text/plain', id);
+            e.dataTransfer.effectAllowed = 'move';
+        };
+
+        window.allowDrop = (e) => {
+            e.preventDefault();
+        };
+
+        window.handleDragLeave = (e) => {
+            e.currentTarget.classList.remove('drop-target');
+        };
+
+        window.handleDropOnGroup = (e, targetGroupId) => {
+            e.preventDefault();
+            e.currentTarget.classList.remove('drop-target');
+            const diagramId = e.dataTransfer.getData('text/plain');
+            if (diagramId) {
+                moveDiagram(diagramId, targetGroupId);
+                loadData();
+                filterAndRender();
+            }
+        };
+
+        // Add visual feedback class
+        window.oldDragOver = window.ondragover;
+
+        // Setup specialized handlers in renderGrid (ondragover="allowDrop(event); this.classList.add('drop-target')")
+        // But inline js 'this' works.
+        // Let's update `renderGrid` HTML to add class toggle.
+        // Actually the `folder-card` styles handle Hover. Drop target needs JS.
+        // Added `ondragover="allowDrop(event); this.classList.add('drop-target')"` in renderGrid not easy without helper.
+        // I used `allowDrop` and `handleDragLeave`.
+        // I need to modify `allowDrop` to add class? No, `ondragenter`.
+        // Let's just rely on standard hover for now, or add simple invalidation.
+
+        window.handleDropOnParent = (e) => {
+            e.preventDefault();
+            const diagramId = e.dataTransfer.getData('text/plain');
+            if (!diagramId) return;
+
+            // Move to parent of currentGroup
+            const curr = getGroup(currentGroupId);
+            const parentId = curr ? curr.parentId : null;
+            // If we are already at root (currentGroupId is null), this shouldn't be visible/act.
+            // But if visible, it means move to root?
+            // "Drop to move up" logic.
+
+            if (currentGroupId) {
+                moveDiagram(diagramId, parentId);
+                loadData();
                 filterAndRender();
             }
         };

@@ -10,7 +10,8 @@
 const KEYS = {
     DIAGRAMS: 'mermaid_diagrams',
     VERSIONS: 'mermaid_versions',
-    USER: 'mermaid_user'
+    USER: 'mermaid_user',
+    GROUPS: 'mermaid_groups'
 };
 
 // --- User Management ---
@@ -36,7 +37,7 @@ export function getDiagram(id) {
     return diagrams.find(d => d.id === id);
 }
 
-export function createDiagram(title, initialCode, authorName) {
+export function createDiagram(title, initialCode, authorName, groupId = null) {
     const diagrams = getAllDiagrams();
     const versions = getAllVersions(); // Helper
 
@@ -64,7 +65,8 @@ export function createDiagram(title, initialCode, authorName) {
         createdAt: Date.now(),
         updatedBy: authorName,
         updatedAt: Date.now(),
-        latestVersionId: versionId
+        latestVersionId: versionId,
+        groupId: groupId // New field
     };
     diagrams.unshift(diagram); // Prepend
     localStorage.setItem(KEYS.DIAGRAMS, JSON.stringify(diagrams));
@@ -132,4 +134,80 @@ export function getDiagramVersions(diagramId) {
 export function getVersion(versionId) {
     const versions = getAllVersions();
     return versions.find(v => v.id === versionId);
+}
+
+// --- Group Management ---
+export function getAllGroups() {
+    const json = localStorage.getItem(KEYS.GROUPS);
+    return json ? JSON.parse(json) : [];
+}
+
+export function getGroup(id) {
+    const groups = getAllGroups();
+    return groups.find(g => g.id === id);
+}
+
+export function createGroup(name, parentId = null) {
+    const groups = getAllGroups();
+    const group = {
+        id: `g_${Date.now()}`,
+        name,
+        parentId, // Supports nesting if needed
+        createdAt: Date.now(),
+        updatedAt: Date.now()
+    };
+    groups.push(group);
+    localStorage.setItem(KEYS.GROUPS, JSON.stringify(groups));
+    return group;
+}
+
+export function updateGroup(id, name) {
+    const groups = getAllGroups();
+    const index = groups.findIndex(g => g.id === id);
+    if (index === -1) throw new Error('Group not found');
+
+    groups[index].name = name;
+    groups[index].updatedAt = Date.now();
+    localStorage.setItem(KEYS.GROUPS, JSON.stringify(groups));
+    return groups[index];
+}
+
+export function deleteGroup(id) {
+    // 1. Delete the group itself
+    let groups = getAllGroups();
+    groups = groups.filter(g => g.id !== id);
+    localStorage.setItem(KEYS.GROUPS, JSON.stringify(groups));
+
+    // 2. Move children groups to Root (Safety)
+    // (If we supported deep nesting, we might want to cascade delete or move up)
+    groups = getAllGroups();
+    let changedGroups = false;
+    groups.forEach(g => {
+        if (g.parentId === id) {
+            g.parentId = null;
+            changedGroups = true;
+        }
+    });
+    if (changedGroups) localStorage.setItem(KEYS.GROUPS, JSON.stringify(groups));
+
+    // 3. Move diagram items to Root
+    const diagrams = getAllDiagrams();
+    let changedDiagrams = false;
+    diagrams.forEach(d => {
+        if (d.groupId === id) {
+            d.groupId = null;
+            changedDiagrams = true;
+        }
+    });
+    if (changedDiagrams) localStorage.setItem(KEYS.DIAGRAMS, JSON.stringify(diagrams));
+}
+
+export function moveDiagram(diagramId, targetGroupId) {
+    const diagrams = getAllDiagrams();
+    const index = diagrams.findIndex(d => d.id === diagramId);
+    if (index === -1) throw new Error('Diagram not found');
+
+    diagrams[index].groupId = targetGroupId;
+    localStorage.setItem(KEYS.DIAGRAMS, JSON.stringify(diagrams));
+    return diagrams[index];
 }
