@@ -345,8 +345,12 @@ export function renderGridEditor(container, model) {
                     item.source = item.target;
                     item.target = temp;
                     item.activation = { activate: false, deactivate: false };
-                    autoCorrectActivations(currentModel); // Fix future inconsistencies
-                    renderGridEditor(container, currentModel);
+                    try {
+                        autoCorrectActivations(currentModel); // Fix future inconsistencies
+                        renderGridEditor(container, currentModel);
+                    } catch (e) {
+                        console.error("Auto-correction error in Swap:", e);
+                    }
                     triggerChange();
                 });
             }
@@ -551,16 +555,24 @@ function updateItem(index, field, value) {
 
     // Auto-correct subsequent rows if activation flow changed
     if (field === 'activation' || field === 'source' || field === 'target') {
-        autoCorrectActivations(currentModel);
-        renderGridEditor(currentContainer, currentModel);
+        try {
+            autoCorrectActivations(currentModel);
+            renderGridEditor(currentContainer, currentModel);
+        } catch (e) {
+            console.error("Auto-correction error in updateItem:", e);
+        }
     }
     triggerChange();
 }
 
 function deleteItem(index) {
     currentModel.items.splice(index, 1);
-    autoCorrectActivations(currentModel); // Check consistency after delete
-    renderGridEditor(currentContainer, currentModel);
+    try {
+        autoCorrectActivations(currentModel); // Check consistency after delete
+        renderGridEditor(currentContainer, currentModel);
+    } catch (e) {
+        console.error("Auto-correction error in deleteItem:", e);
+    }
     triggerChange();
 }
 
