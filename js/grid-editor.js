@@ -286,9 +286,9 @@ export function renderGridEditor(container, model) {
                         ${!canDeactivate ? 'disabled' : ''}>
                         <i class="ph ph-minus-circle"></i>
                     </button>
-                    <select class="input-sm seq-source" style="flex:1">
-                        ${getParticipantOptions(model.participants, item.source)}
-                    </select>
+                    <button class="btn-participant-select seq-source-btn">
+                        ${getParticipantLabel(model.participants, item.source)}
+                    </button>
                 </span>
                 <span class="col-swap">
                     <button class="btn-swap" title="Swap Source/Target">
@@ -296,9 +296,9 @@ export function renderGridEditor(container, model) {
                     </button>
                 </span>
                 <span class="col-target" style="display: flex; align-items: center; gap: 4px;">
-                     <select class="input-sm seq-target" style="flex:1">
-                        ${getParticipantOptions(model.participants, item.target)}
-                    </select>
+                     <button class="btn-participant-select seq-target-btn">
+                        ${getParticipantLabel(model.participants, item.target)}
+                    </button>
                     <button class="btn-icon btn-sm btn-activate ${isActivateActive ? 'active' : ''}" 
                         title="${activateTitle}"
                         ${!canActivate ? 'disabled' : ''}>
@@ -317,7 +317,10 @@ export function renderGridEditor(container, model) {
             `;
 
             // Events
-            row.querySelector('.seq-source').addEventListener('change', (e) => updateItem(index, 'source', e.target.value));
+            row.querySelector('.seq-source-btn').addEventListener('click', (e) => {
+                e.stopPropagation();
+                openParticipantSelector(e, index, 'source', item.source);
+            });
 
             row.querySelector('.btn-arrow-type').addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -343,7 +346,10 @@ export function renderGridEditor(container, model) {
                 });
             }
 
-            row.querySelector('.seq-target').addEventListener('change', (e) => updateItem(index, 'target', e.target.value));
+            row.querySelector('.seq-target-btn').addEventListener('click', (e) => {
+                e.stopPropagation();
+                openParticipantSelector(e, index, 'target', item.target);
+            });
             row.querySelector('.seq-content').addEventListener('input', (e) => updateItem(index, 'content', e.target.value));
             row.querySelector('.btn-delete-s').addEventListener('click', () => deleteItem(index));
 
@@ -480,11 +486,7 @@ function addParticipant() {
 
 function updateParticipant(index, field, value) {
     currentModel.participants[index][field] = value;
-    const selects = currentContainer.querySelectorAll('.seq-source, .seq-target');
-    selects.forEach(select => {
-        const currentVal = select.value;
-        select.innerHTML = getParticipantOptions(currentModel.participants, currentVal);
-    });
+    renderGridEditor(currentContainer, currentModel);
     triggerChange();
 }
 
@@ -580,6 +582,74 @@ function deleteItem(index) {
 
 // ... internal Swap Logic needs update too ...
 
+
+function getParticipantLabel(participants, id) {
+    const p = participants.find(p => p.id === id);
+    if (!p) return id;
+    const logicalId = p.logicalId || p.id;
+    const name = p.name || logicalId;
+    return `[${logicalId}] ${name}`;
+}
+
+function openParticipantSelector(event, index, field, currentVal) {
+    const existing = document.querySelector('.participant-selector-popover');
+    if (existing) existing.remove();
+
+    const btn = event.currentTarget;
+
+    const popover = document.createElement('div');
+    popover.className = 'participant-selector-popover';
+    popover.style.position = 'fixed';
+
+    // Positioning logic (same as arrow selector)
+    const updatePosition = () => {
+        const rect = btn.getBoundingClientRect();
+        popover.style.top = `${rect.bottom + 4}px`;
+        popover.style.left = `${rect.left}px`;
+        // Adjust width to match button or min-width
+        popover.style.minWidth = `${rect.width}px`;
+    };
+    updatePosition();
+
+    currentModel.participants.forEach(p => {
+        const item = document.createElement('div');
+        item.className = 'participant-option';
+        if (p.id === currentVal) item.classList.add('selected');
+
+        const logicalId = p.logicalId || p.id;
+        const name = p.name || logicalId;
+        const label = `[${logicalId}] ${name}`;
+
+        item.innerHTML = `<span>${label}</span>`;
+
+        item.addEventListener('click', (e) => {
+            e.stopPropagation();
+            updateItem(index, field, p.id);
+            cleanup();
+        });
+
+        popover.appendChild(item);
+    });
+
+    document.body.appendChild(popover);
+
+    const cleanup = () => {
+        popover.remove();
+        document.removeEventListener('mousedown', closeHandler);
+        window.removeEventListener('scroll', updatePosition, true);
+        window.removeEventListener('resize', updatePosition);
+    };
+
+    const closeHandler = (e) => {
+        if (!popover.contains(e.target) && e.target !== btn && !btn.contains(e.target)) {
+            cleanup();
+        }
+    };
+
+    document.addEventListener('mousedown', closeHandler);
+    window.addEventListener('scroll', updatePosition, true);
+    window.addEventListener('resize', updatePosition);
+}
 
 function openArrowSelector(event, index, currentVal) {
     const existing = document.querySelector('.arrow-selector-popover');
