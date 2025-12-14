@@ -2,6 +2,8 @@
  * Logic for the Grid UI Editor.
  */
 
+import { ARROW_SVGS, ARROW_LABELS } from './mermaid-utils.js';
+
 let currentModel = null;
 let onChangeCallback = null;
 let currentContainer = null; // Store container for re-rendering
@@ -10,20 +12,6 @@ let currentContainer = null; // Store container for re-rendering
 const viewState = {
     participantsExpanded: true,
     sequenceExpanded: true
-};
-
-// SVG Definitions for Arrows
-const ARROW_SVGS = {
-    '->>': `<svg viewBox="0 0 80 14" fill="none" class="arrow-svg"><path d="M20 7H60" stroke="currentColor" stroke-width="2"/><path d="M60 7L50 2V12L60 7Z" fill="currentColor"/></svg>`,
-    '-->>': `<svg viewBox="0 0 80 14" fill="none" class="arrow-svg"><path d="M20 7H60" stroke="currentColor" stroke-width="2" stroke-dasharray="4 4"/><path d="M60 7L50 2V12L60 7Z" fill="currentColor"/></svg>`,
-    '-)': `<svg viewBox="0 0 80 14" fill="none" class="arrow-svg"><path d="M20 7H60" stroke="currentColor" stroke-width="2"/><path d="M50 2L60 7L50 12" stroke="currentColor" stroke-width="2"/></svg>`,
-    '--)': `<svg viewBox="0 0 80 14" fill="none" class="arrow-svg"><path d="M20 7H60" stroke="currentColor" stroke-width="2" stroke-dasharray="4 4"/><path d="M50 2L60 7L50 12" stroke="currentColor" stroke-width="2"/></svg>`,
-    '->': `<svg viewBox="0 0 80 14" fill="none" class="arrow-svg"><path d="M20 7H60" stroke="currentColor" stroke-width="2"/></svg>`,
-    '-->': `<svg viewBox="0 0 80 14" fill="none" class="arrow-svg"><path d="M20 7H60" stroke="currentColor" stroke-width="2" stroke-dasharray="4 4"/></svg>`,
-    '-x': `<svg viewBox="0 0 80 14" fill="none" class="arrow-svg"><path d="M20 7H60" stroke="currentColor" stroke-width="2"/><path d="M53 3L63 11M63 3L53 11" stroke="currentColor" stroke-width="2"/></svg>`,
-    '--x': `<svg viewBox="0 0 80 14" fill="none" class="arrow-svg"><path d="M20 7H60" stroke="currentColor" stroke-width="2" stroke-dasharray="4 4"/><path d="M53 3L63 11M63 3L53 11" stroke="currentColor" stroke-width="2"/></svg>`,
-    '<<->>': `<svg viewBox="0 0 80 14" fill="none" class="arrow-svg"><path d="M20 7L30 12V2L20 7Z" fill="currentColor"/><path d="M30 7H60" stroke="currentColor" stroke-width="2"/><path d="M60 7L50 2V12L60 7Z" fill="currentColor"/></svg>`,
-    '<<-->>': `<svg viewBox="0 0 80 14" fill="none" class="arrow-svg"><path d="M20 7L30 12V2L20 7Z" fill="currentColor"/><path d="M30 7H60" stroke="currentColor" stroke-width="2" stroke-dasharray="4 4"/><path d="M60 7L50 2V12L60 7Z" fill="currentColor"/></svg>`
 };
 
 export function initGridEditor(callback) {

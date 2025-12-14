@@ -807,7 +807,59 @@ select.input-sm {
     line-height: 1.5;
 }
 
-.modal-body input[type="text"],
+
+/* --- Markdown Editor Autocomplete --- */
+.suggestion-box {
+    position: absolute;
+    background-color: var(--color-bg-panel);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    width: 250px;
+    max-height: 200px;
+    overflow-y: auto;
+    font-size: 0.9rem;
+    font-family: var(--font-sans);
+}
+
+.suggestion-box.hidden {
+    display: none;
+}
+
+.suggestion-item {
+    padding: 0.5rem 0.8rem;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--color-bg-base);
+}
+
+.suggestion-item:last-child {
+    border-bottom: none;
+}
+
+.suggestion-item.selected,
+.suggestion-item:hover {
+    background-color: var(--color-primary);
+    color: white;
+}
+
+.suggestion-item .s-value {
+    font-weight: 500;
+}
+
+.suggestion-item .s-info {
+    font-size: 0.75rem;
+    opacity: 0.7;
+}
+
+.suggestion-item.selected .s-info,
+.suggestion-item:hover .s-info {
+    opacity: 0.9;
+}
+
 .modal-body .input-text {
     width: 100%;
     padding: 0.6rem 0.8rem;

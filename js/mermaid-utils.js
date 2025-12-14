@@ -2,6 +2,33 @@
  * Mermaid utility module for initialization, rendering, and parsing.
  */
 
+// SVG Definitions for Arrows
+export const ARROW_SVGS = {
+    '->>': `<svg viewBox="0 0 80 14" fill="none" class="arrow-svg"><path d="M20 7H60" stroke="currentColor" stroke-width="2"/><path d="M60 7L50 2V12L60 7Z" fill="currentColor"/></svg>`,
+    '-->>': `<svg viewBox="0 0 80 14" fill="none" class="arrow-svg"><path d="M20 7H60" stroke="currentColor" stroke-width="2" stroke-dasharray="4 4"/><path d="M60 7L50 2V12L60 7Z" fill="currentColor"/></svg>`,
+    '-)': `<svg viewBox="0 0 80 14" fill="none" class="arrow-svg"><path d="M20 7H60" stroke="currentColor" stroke-width="2"/><path d="M50 2L60 7L50 12" stroke="currentColor" stroke-width="2"/></svg>`,
+    '--)': `<svg viewBox="0 0 80 14" fill="none" class="arrow-svg"><path d="M20 7H60" stroke="currentColor" stroke-width="2" stroke-dasharray="4 4"/><path d="M50 2L60 7L50 12" stroke="currentColor" stroke-width="2"/></svg>`,
+    '->': `<svg viewBox="0 0 80 14" fill="none" class="arrow-svg"><path d="M20 7H60" stroke="currentColor" stroke-width="2"/></svg>`,
+    '-->': `<svg viewBox="0 0 80 14" fill="none" class="arrow-svg"><path d="M20 7H60" stroke="currentColor" stroke-width="2" stroke-dasharray="4 4"/></svg>`,
+    '-x': `<svg viewBox="0 0 80 14" fill="none" class="arrow-svg"><path d="M20 7H60" stroke="currentColor" stroke-width="2"/><path d="M53 3L63 11M63 3L53 11" stroke="currentColor" stroke-width="2"/></svg>`,
+    '--x': `<svg viewBox="0 0 80 14" fill="none" class="arrow-svg"><path d="M20 7H60" stroke="currentColor" stroke-width="2" stroke-dasharray="4 4"/><path d="M53 3L63 11M63 3L53 11" stroke="currentColor" stroke-width="2"/></svg>`,
+    '<<->>': `<svg viewBox="0 0 80 14" fill="none" class="arrow-svg"><path d="M20 7L30 12V2L20 7Z" fill="currentColor"/><path d="M30 7H60" stroke="currentColor" stroke-width="2"/><path d="M60 7L50 2V12L60 7Z" fill="currentColor"/></svg>`,
+    '<<-->>': `<svg viewBox="0 0 80 14" fill="none" class="arrow-svg"><path d="M20 7L30 12V2L20 7Z" fill="currentColor"/><path d="M30 7H60" stroke="currentColor" stroke-width="2" stroke-dasharray="4 4"/><path d="M60 7L50 2V12L60 7Z" fill="currentColor"/></svg>`
+};
+
+export const ARROW_LABELS = {
+    '->>': 'Solid / Arrow',
+    '-->>': 'Dotted / Arrow',
+    '-)': 'Solid / Open',
+    '--)': 'Dotted / Open',
+    '->': 'Solid / Line',
+    '-->': 'Dotted / Line',
+    '-x': 'Solid / Cross',
+    '--x': 'Dotted / Cross',
+    '<<->>': 'Solid / Bi-dir',
+    '<<-->>': 'Dotted / Bi-dir'
+};
+
 // Initialize Mermaid
 mermaid.initialize({
     startOnLoad: false,

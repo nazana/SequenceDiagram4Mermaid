@@ -2,6 +2,7 @@ import { renderMermaid, parseMermaidCode, generateMermaidCode, sanitizeMermaidCo
 import { initGridEditor, renderGridEditor } from './grid-editor.js';
 import { getCurrentUser, saveUser, getDiagram, createDiagram, updateDiagram, getDiagramVersions, getVersion } from './storage.js';
 import { showAlert, showPrompt, showConfirm } from './ui-utils.js';
+import { initSmartGuide } from './editor-guide.js';
 
 // DOM Elements
 const markdownInput = document.getElementById('markdown-input');
@@ -238,6 +239,9 @@ function setupEditors() {
             syncFromMarkdown();
         }, 500);
     });
+
+    // Initialize Smart Guide
+    initSmartGuide(markdownInput);
 
     tabButtons.forEach(btn => {
         btn.addEventListener('click', () => {
