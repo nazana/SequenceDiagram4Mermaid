@@ -4,6 +4,13 @@
 
 ## [Unreleased]
 
+## [0.2.2] - 2025-12-14
+### 수정됨 (Fixed)
+- **Grid Layout**: Participants와 Sequence 테이블 간의 간격 불일치 해결 (Spacer 제거, 컬럼 순서 통일).
+- **Activation Lines**: Activation 라인이 끊겨 보이거나 위치가 어긋나는 문제 해결 (Row 전체 높이 커버, 중앙 정렬).
+- **Syntax Error 방지**: 비활성화된 참여자에 대한 Deactivate 시도를 자동으로 수정하는 로직 추가 (`autoCorrectActivations`).
+- **UI 스타일**: 화살표 선택 팝업의 아이콘 정렬 문제 수정.
+
 ## [0.2.1] - 2025-12-14
 ### 추가됨 (Added)
 - **자동 번호 매기기 (Autonumber)**: Mermaid Native `autonumber` 기능 지원 및 Grid Editor 내 토글 추가.

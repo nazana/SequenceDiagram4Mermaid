@@ -82,7 +82,6 @@ export function renderGridEditor(container, model) {
     pHeader.style.fontWeight = '600';
 
     // Ordered: Handle > No > Type > ID > Name
-    // Spacer Removed
     pHeader.innerHTML = `
         <span class="col-handle"></span>
         <span class="col-no grid-col-no" style="font-weight:600">No.</span>
@@ -202,7 +201,6 @@ export function renderGridEditor(container, model) {
     sWrapper.style.overflow = 'hidden';
 
     // Sequence Header: Ordered to match Participants
-    // Removed col-activation
     const sHeader = document.createElement('div');
     sHeader.className = 'sequence-header';
     sHeader.style.backgroundColor = 'var(--color-bg-hover)';
@@ -247,7 +245,10 @@ export function renderGridEditor(container, model) {
             }
         }
     });
-    openActivations.forEach(a => brackets.push({ start: a.startRow, end: model.items.length - 1, level: a.level }));
+    // Mark unclosed activations
+    openActivations.forEach(a => {
+        brackets.push({ start: a.startRow, end: model.items.length - 1, level: a.level, unclosed: true });
+    });
 
 
     model.items.forEach((item, index) => {
@@ -258,7 +259,6 @@ export function renderGridEditor(container, model) {
         if (index === model.items.length - 1) row.style.borderBottom = 'none';
 
         if (item.type === 'message') {
-            // Validation Logic
             const isDeactivateActive = !!item.activation?.deactivate;
             const isSourceActive = checkIsActiveAt(model, index, item.source);
 
@@ -284,13 +284,11 @@ export function renderGridEditor(container, model) {
             if (isActivateActive && !isSafeToDisableActivate) activateTitle = "Cannot disable (required by later deactivate)";
 
 
-            // Render Row
-            // Merged Activation Lines into col-handle
-            // Adjust SVG x position slightly to avoid overlap with handle dots if possible, or just overlay
+            row.style.position = 'relative';
             row.innerHTML = `
+                ${renderActivationLines(index, brackets)}
                 <span class="col-handle" style="position: relative;">
                     <i class="ph ph-dots-six-vertical"></i>
-                    ${renderActivationLines(index, brackets)}
                 </span>
                 <span class="col-no grid-col-no">${index + 1}</span>
 
@@ -330,12 +328,14 @@ export function renderGridEditor(container, model) {
                 </span>
             `;
 
+            // Events
             row.querySelector('.seq-source').addEventListener('change', (e) => updateItem(index, 'source', e.target.value));
 
             row.querySelector('.btn-arrow-type').addEventListener('click', (e) => {
                 e.stopPropagation();
                 openArrowSelector(e, index, item.arrow);
             });
+            // Arrow selector single line fix is in openArrowSelector
 
             const btnSwap = row.querySelector('.btn-swap');
             if (btnSwap) {
@@ -345,6 +345,7 @@ export function renderGridEditor(container, model) {
                     item.source = item.target;
                     item.target = temp;
                     item.activation = { activate: false, deactivate: false };
+                    autoCorrectActivations(currentModel); // Fix future inconsistencies
                     renderGridEditor(container, currentModel);
                     triggerChange();
                 });
@@ -372,10 +373,11 @@ export function renderGridEditor(container, model) {
                 });
             }
         } else {
+            row.style.position = 'relative';
             row.innerHTML = `
+                ${renderActivationLines(index, brackets)}
                 <span class="col-handle" style="position: relative;">
                     <i class="ph ph-dots-six-vertical"></i>
-                    ${renderActivationLines(index, brackets)}
                 </span>
                 <span class="col-no grid-col-no">${index + 1}</span>
                 <span class="col-msg" style="flex: 1; padding: 0 1rem; color: var(--color-text-secondary); font-style: italic;">
@@ -508,16 +510,48 @@ function addItem() {
     triggerChange();
 }
 
+// ... (previous code)
+
+function autoCorrectActivations(model) {
+    const activeCounts = {};
+    let changed = false;
+
+    model.items.forEach(item => {
+        // 1. Check Deactivate
+        if (item.activation?.deactivate) {
+            const count = activeCounts[item.source] || 0;
+            if (count <= 0) {
+                // Invalid deactivate! Turn it off.
+                item.activation.deactivate = false;
+                changed = true;
+            } else {
+                activeCounts[item.source]--;
+            }
+        }
+
+        // 2. Apply Activate
+        if (item.activation?.activate) {
+            activeCounts[item.target] = (activeCounts[item.target] || 0) + 1;
+        }
+    });
+
+    return changed;
+}
+
 function updateItem(index, field, value) {
     if (field === 'source' || field === 'target') {
         const item = currentModel.items[index];
         if (item[field] !== value) {
+            // Reset activation on the changed row itself
             item.activation = { activate: false, deactivate: false };
         }
     }
 
     currentModel.items[index][field] = value;
-    if (field === 'arrow' || field === 'activation' || field === 'source' || field === 'target') {
+
+    // Auto-correct subsequent rows if activation flow changed
+    if (field === 'activation' || field === 'source' || field === 'target') {
+        autoCorrectActivations(currentModel);
         renderGridEditor(currentContainer, currentModel);
     }
     triggerChange();
@@ -525,9 +559,13 @@ function updateItem(index, field, value) {
 
 function deleteItem(index) {
     currentModel.items.splice(index, 1);
+    autoCorrectActivations(currentModel); // Check consistency after delete
     renderGridEditor(currentContainer, currentModel);
     triggerChange();
 }
+
+// ... internal Swap Logic needs update too ...
+
 
 function openArrowSelector(event, index, currentVal) {
     const existing = document.querySelector('.arrow-selector-popover');
@@ -557,7 +595,7 @@ function openArrowSelector(event, index, currentVal) {
 
     Object.keys(ARROW_SVGS).forEach(key => {
         const item = document.createElement('div');
-        item.className = 'arrow-option';
+        item.className = 'arrow-option'; // Changed to arrow-option as per earlier fix
         if (key === currentVal) item.classList.add('selected');
 
         item.innerHTML = `
@@ -586,29 +624,35 @@ function openArrowSelector(event, index, currentVal) {
 }
 
 function renderActivationLines(rowIndex, brackets) {
-    const activeBrackets = brackets.filter(b => b.start <= rowIndex && b.end >= rowIndex);
+    // Filter: Hide unclosed brackets
+    const activeBrackets = brackets.filter(b => !b.unclosed && b.start <= rowIndex && b.end >= rowIndex);
     if (activeBrackets.length === 0) return '';
 
-    // SVG with overflow visible to allow drawing floating lines
-    let svg = `<svg width="100%" height="100%" style="position:absolute; top:0; left:20px; pointer-events:none; overflow:visible;">`;
+    // SVG Position: left 42px (34px + 8px padding) to align clearly between handle and No column
+    let svg = `<svg width="100%" height="100%" style="position:absolute; top:0; left:42px; pointer-events:none; overflow:visible;">`;
 
     activeBrackets.forEach(b => {
-        // x offset 
         const x = b.level * 6;
-        let path = '';
-        const topY = 10;
-        const bottomY = 36;
+        const w = 4; // Bracket horizontal width
+        const stroke = `stroke="currentColor" stroke-width="1.5" style="color: var(--color-text-tertiary);"`;
 
         if (b.start === rowIndex && b.end === rowIndex) {
-            path = `M${x + 4} ${topY} H${x} V${bottomY} H${x + 4}`;
+            // Single row: short bracket around center
+            svg += `<line x1="${x + w}" y1="30%" x2="${x}" y2="30%" ${stroke}/>`;
+            svg += `<line x1="${x}" y1="30%" x2="${x}" y2="70%" ${stroke}/>`;
+            svg += `<line x1="${x}" y1="70%" x2="${x + w}" y2="70%" ${stroke}/>`;
         } else if (b.start === rowIndex) {
-            path = `M${x + 4} ${topY} H${x} V50`;
+            // Start: Center(50%) -> Bottom(100%)
+            svg += `<line x1="${x + w}" y1="50%" x2="${x}" y2="50%" ${stroke}/>`;
+            svg += `<line x1="${x}" y1="50%" x2="${x}" y2="100%" ${stroke}/>`;
         } else if (b.end === rowIndex) {
-            path = `M${x} 0 V${bottomY} H${x + 4}`;
+            // End: Top(0%) -> Center(50%)
+            svg += `<line x1="${x}" y1="0%" x2="${x}" y2="50%" ${stroke}/>`;
+            svg += `<line x1="${x}" y1="50%" x2="${x + w}" y2="50%" ${stroke}/>`;
         } else {
-            path = `M${x} 0 V50`;
+            // Middle: Full height
+            svg += `<line x1="${x}" y1="0%" x2="${x}" y2="100%" ${stroke}/>`;
         }
-        svg += `<path d="${path}" stroke="currentColor" stroke-width="1.5" fill="none" class="activation-line" style="color: var(--color-text-tertiary);"/>`;
     });
 
     svg += `</svg>`;
