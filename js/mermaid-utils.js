@@ -8,7 +8,7 @@ mermaid.initialize({
     theme: 'dark',
     securityLevel: 'loose',
     sequence: {
-        showSequenceNumbers: false,
+
         actorMargin: 50,
         boxMargin: 10,
         boxTextMargin: 5,
@@ -60,23 +60,31 @@ export async function renderMermaid(code, container) {
  * Parses Mermaid sequence diagram code into a structured model.
  * @param {string} code 
  * @returns {object} { participants: [], items: [] }
+ * @returns {object} { participants: [], items: [], config: { autonumber: boolean } }
  */
 export function parseMermaidCode(code) {
     const lines = code.split('\n').map(l => l.trim()).filter(l => l && !l.startsWith('%%'));
 
     const participants = [];
     const items = [];
+    const config = { autonumber: false };
 
     // Regex helpers
     // participant A as Alice
     const participantRegex = /^(participant|actor)\s+([^\s]+)(?:\s+as\s+(.+))?$/i;
     // A->>B: text, A-)B: text, A-xB: text
-    const messageRegex = /^([^\s]+)\s*((?:<<-+(?:>>?))|(?:-+(?:>>?|x|\)|>)))\s*([^\s]+)\s*(?::\s*(.+))?$/;
+    // Improved regex: use lazy match (+?) for source/target to handle "A->B" without spaces
+    const messageRegex = /^([^\s]+?)\s*((?:<<-+(?:>>?))|(?:-+(?:>>?|x|\)|>)))\s*([^\s]+?)(?::\s*(.+))?$/;
     // Note right of A: text
     const noteRegex = /^Note\s+(right of|left of|over)\s+([^:]+)\s*:\s*(.+)$/i;
 
     lines.forEach(line => {
         if (line === 'sequenceDiagram') return;
+
+        if (line === 'autonumber') {
+            config.autonumber = true;
+            return;
+        }
 
         // Match Participant
         const pMatch = line.match(participantRegex);
@@ -95,6 +103,10 @@ export function parseMermaidCode(code) {
         const mMatch = line.match(messageRegex);
         if (mMatch) {
             let arrow = mMatch[2];
+
+            // Validate arrow
+            if (!arrow || arrow.length < 2) arrow = '->>';
+
             // Normalize arrow to supported types
             if (arrow.startsWith('<<')) {
                 const isDotted = arrow.includes('--');
@@ -115,7 +127,7 @@ export function parseMermaidCode(code) {
                 source: mMatch[1],
                 arrow: arrow,
                 target: mMatch[3],
-                content: mMatch[4] || ''
+                content: (mMatch[4] || '').replace(/^\d+\.\s*/, '')
             });
             return;
         }
@@ -127,22 +139,25 @@ export function parseMermaidCode(code) {
                 type: 'note',
                 position: nMatch[1], // right of, etc
                 target: nMatch[2], // participant(s)
-                content: nMatch[3]
+                content: (nMatch[3] || '').replace(/^\d+\.\s*/, '')
             });
             return;
         }
     });
 
-    return { participants, items };
+    return { participants, items, config };
 }
 
 /**
  * Generates Mermaid code from the model.
- * @param {object} model { participants, items }
+ * @param {object} model { participants, items, config }
  * @returns {string}
  */
 export function generateMermaidCode(model) {
     let code = 'sequenceDiagram\n';
+    if (model.config && model.config.autonumber) {
+        code += '    autonumber\n';
+    }
 
     // Participants
     model.participants.forEach(p => {
@@ -173,7 +188,8 @@ export function generateMermaidCode(model) {
             } else {
                 arrow = '->>'; // Default fallback
             }
-            code += `    ${item.source}${arrow}${item.target}: ${item.content}\n`;
+            // Add spaces around arrow for better parsing stability
+            code += `    ${item.source} ${arrow} ${item.target}: ${item.content}\n`;
         } else if (item.type === 'note') {
             code += `    Note ${item.position} ${item.target}: ${item.content}\n`;
         }

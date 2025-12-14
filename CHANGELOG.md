@@ -4,6 +4,20 @@
 
 ## [Unreleased]
 
+## [0.2.1] - 2025-12-14
+### 추가됨 (Added)
+- **자동 번호 매기기 (Autonumber)**: Mermaid Native `autonumber` 기능 지원 및 Grid Editor 내 토글 추가.
+- **Source/Target 교환**: Grid Row에서 참여자 위치를 즉시 맞바꿀 수 있는 Swap 버튼 추가.
+
+### 변경됨 (Changed)
+- **Grid Editor 레이아웃**: 컬럼 순서 재배치 (Source -> Swap -> Target -> Type -> Message).
+- **UI 디자인**: 화살표 아이콘(Type 버튼)의 길이를 축소하여 시각적 균형 개선.
+- **파싱 로직**: Mermaid 코드 생성 시 화살표 주변에 공백을 강제하고, 정규식을 개선하여 파싱 안정성 확보.
+
+### 수정됨 (Fixed)
+- **동기화 오류**: 특정 문법(공백 없는 화살표 등)에서 Markdown과 Grid가 일치하지 않는 문제 해결.
+- **레이아웃 버그**: Grid Editor의 HTML 태그 중복으로 인한 깨짐 현상 수정.
+
 ## [0.2.0] - 2025-12-14
 ### 변경됨 (Changed)
 - **Mermaid 라이브러리 업데이트**: v10.9.0 -> v11.0.2 (양방향 화살표 지원).
