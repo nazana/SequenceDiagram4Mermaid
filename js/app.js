@@ -159,64 +159,89 @@ window.onGridRowSelect = function (index) {
     // Notes are .noteText.
     const messageTexts = mermaidOutput.querySelectorAll('.messageText');
 
-    // Clear previous highlights
+    // Clear previous highlights & Reset Markers
     mermaidOutput.querySelectorAll('.mermaid-selected-text').forEach(el => el.classList.remove('mermaid-selected-text'));
-    mermaidOutput.querySelectorAll('.mermaid-selected-line').forEach(el => el.classList.remove('mermaid-selected-line'));
+    mermaidOutput.querySelectorAll('.mermaid-selected-line').forEach(el => {
+        el.classList.remove('mermaid-selected-line');
+        // Reset marker if changed
+        if (el.dataset.originalMarker) {
+            el.setAttribute('marker-end', el.dataset.originalMarker);
+            delete el.dataset.originalMarker;
+        }
+    });
+
+    // Remove any previously created temporary markers to keep DOM clean
+    const svg = mermaidOutput.querySelector('svg');
+    if (svg) {
+        svg.querySelectorAll('.temp-selected-marker').forEach(m => m.remove());
+    }
 
     // Grid index includes ALL items (messages + notes).
-    // But .messageText ONLY includes messages.
-    // We need to map Grid Item Index -> Message Index (skipping items that act as messages but are not messages? Wait.
-    // items in grid: [Msg, Note, Msg] -> Indices: 0, 1, 2.
-    // Mermaid .messageText: [Msg, Msg]. Indices: 0, 1.
-    // Note .noteText: [Note].
-
-    // So we need to count how many messages are before the selected index in the Grid Model.
-    // To do this accurately, we need the current Model in 'onGridRowSelect'.
-    // We can re-parse markdownInput to get model... or pass it. But for now simplest is re-parse or global state.
     const model = parseMermaidCode(markdownInput.value);
 
     // Check if the selected item is actually a message
     if (model.items[index] && model.items[index].type === 'message') {
-        // Calculate message index (nth message)
-        let msgIndex = 0;
+
+        // 1. Calculate which "Message Index" (k-th message) this Grid Item corresponds to
+        let targetMsgIndex = 0;
         for (let i = 0; i < index; i++) {
-            if (model.items[i].type === 'message') msgIndex++;
+            if (model.items[i].type === 'message') targetMsgIndex++;
         }
 
-        if (messageTexts[msgIndex]) {
-            const textEl = messageTexts[msgIndex];
+        // 2. Get all Message Texts from DOM and Sort by Y-coordinate (Visual Order)
+        // This bypasses any internal index mismatch or content drift issues.
+        const allTexts = Array.from(mermaidOutput.querySelectorAll('.messageText'));
+        allTexts.sort((a, b) => a.getBoundingClientRect().top - b.getBoundingClientRect().top);
+
+        if (allTexts[targetMsgIndex]) {
+            const textEl = allTexts[targetMsgIndex];
             textEl.classList.add('mermaid-selected-text');
 
-            // Try to highlight the line too. 
-            // Usually the line is a path with id like 'L-A-B-0', but sometimes hard to find.
-            // Often it is a sibling or nearby.
-            // For now, text highlight is effective enough, or we can look for .messageLine0, .messageLine1 (Mermaid internal classes).
-            const lineEl = mermaidOutput.querySelector(`.messageLine${msgIndex}`);
-            if (lineEl) lineEl.classList.add('mermaid-selected-line');
-
-            // Panzoom to element? Maybe too jarring.
+            // Note: Line highlighting logic removed as per user request to only highlight label.
         }
     }
 };
 
+// Setup click interactions for Mermaid diagram elements
 function setupCanvasInteractions() {
-    const messageTexts = mermaidOutput.querySelectorAll('.messageText');
+    const messageTexts = Array.from(mermaidOutput.querySelectorAll('.messageText'));
     const model = parseMermaidCode(markdownInput.value);
 
-    messageTexts.forEach((el, msgIndex) => {
+    messageTexts.forEach((el) => {
+        // Enforce pointer cursor so user knows it's clickable
         el.style.cursor = 'pointer';
-        el.addEventListener('click', (e) => {
+        el.style.pointerEvents = 'all'; // Ensure it captures events
+
+        // Remove old listeners to be safe (though usually new elements)
+        // Since we are adding anonymous function, we can't remove easily.
+        // Assuming elements are fresh from renderMermaid.
+
+        el.onclick = (e) => {
             e.stopPropagation();
 
-            if (window.isPanning) return;
+            // Panning check removed to ensure click works. 
+            // If dragging happens, usually click is suppressed by browser or library, but if not, selecting row is harmless.
 
-            // Reverse mapping: Message Index -> Grid Index
+            // 1. Determine Visual Index
+            // Re-query to get current visual order
+            const currentTexts = Array.from(mermaidOutput.querySelectorAll('.messageText'));
+            // Visual sort
+            currentTexts.sort((a, b) => a.getBoundingClientRect().top - b.getBoundingClientRect().top);
+
+            const visualIndex = currentTexts.indexOf(el);
+
+            if (visualIndex === -1) {
+                console.warn('Clicked element not found in current text list');
+                return;
+            }
+
+            // 2. Map Visual Index -> Grid Index
             let currentMsgCount = 0;
             let targetGridIndex = -1;
 
             for (let i = 0; i < model.items.length; i++) {
                 if (model.items[i].type === 'message') {
-                    if (currentMsgCount === msgIndex) {
+                    if (currentMsgCount === visualIndex) {
                         targetGridIndex = i;
                         break;
                     }
@@ -227,7 +252,7 @@ function setupCanvasInteractions() {
             if (targetGridIndex !== -1) {
                 window.onGridRowSelect(targetGridIndex);
             }
-        });
+        };
     });
 }
 

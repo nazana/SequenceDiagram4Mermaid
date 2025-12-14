@@ -2,7 +2,7 @@
  * Logic for the Grid UI Editor.
  */
 
-import { ARROW_SVGS, ARROW_LABELS } from './mermaid-utils.js';
+import { ARROW_SVGS } from './mermaid-utils.js';
 
 let currentModel = null;
 let onChangeCallback = null;
@@ -166,7 +166,7 @@ export function renderGridEditor(container, model) {
     sIcon.style.transform = viewState.sequenceExpanded ? 'rotate(180deg)' : 'rotate(0deg)';
 
     const btnAutonumber = sSection.querySelector('#btn-autonumber');
-    btnAutonumber.addEventListener('click', (e) => {
+    btnAutonumber.addEventListener('click', (_e) => {
         if (!model.config) model.config = {};
         model.config.autonumber = !model.config.autonumber;
 
@@ -541,6 +541,8 @@ function updateItem(index, field, value) {
 
     currentModel.items[index][field] = value;
 
+    let shouldRender = false;
+
     // Auto-correct subsequent rows if activation flow changed
     if (field === 'activation' || field === 'source' || field === 'target') {
         try {
@@ -549,11 +551,19 @@ function updateItem(index, field, value) {
                 // Optional: Show toast or log to let user know why it turned off
                 console.warn("Auto-corrected invalid activations.");
             }
-            renderGridEditor(currentContainer, currentModel);
         } catch (e) {
             console.error("Auto-correction error in updateItem:", e);
         }
+        shouldRender = true;
+    } else if (field !== 'content') {
+        // Convert arrow, etc. requires re-render to update icon
+        shouldRender = true;
     }
+
+    if (shouldRender) {
+        renderGridEditor(currentContainer, currentModel);
+    }
+
     triggerChange();
 }
 
@@ -576,13 +586,23 @@ function openArrowSelector(event, index, currentVal) {
     if (existing) existing.remove();
 
     const btn = event.currentTarget;
-    const rect = btn.getBoundingClientRect();
 
+    // Create popover
     const popover = document.createElement('div');
     popover.className = 'arrow-selector-popover';
+    // Ensure fixed positioning via JS or CSS (CSS likely has absolute, so override)
+    popover.style.position = 'fixed';
 
-    popover.style.top = `${rect.bottom + window.scrollY + 4}px`;
-    popover.style.left = `${rect.left + window.scrollX}px`;
+    const updatePosition = () => {
+        const rect = btn.getBoundingClientRect();
+        // Check if button is off-screen (optional, but good UX)
+        // For now, just follow.
+        popover.style.top = `${rect.bottom + 4}px`;
+        popover.style.left = `${rect.left}px`;
+    };
+
+    // Initial position
+    updatePosition();
 
     const labels = {
         '->>': 'Solid / Arrow',
@@ -599,7 +619,7 @@ function openArrowSelector(event, index, currentVal) {
 
     Object.keys(ARROW_SVGS).forEach(key => {
         const item = document.createElement('div');
-        item.className = 'arrow-option'; // Changed to arrow-option as per earlier fix
+        item.className = 'arrow-option';
         if (key === currentVal) item.classList.add('selected');
 
         item.innerHTML = `
@@ -610,7 +630,7 @@ function openArrowSelector(event, index, currentVal) {
         item.addEventListener('click', (e) => {
             e.stopPropagation();
             updateItem(index, 'arrow', key);
-            popover.remove();
+            cleanup();
         });
 
         popover.appendChild(item);
@@ -618,13 +638,23 @@ function openArrowSelector(event, index, currentVal) {
 
     document.body.appendChild(popover);
 
+    // Event Listeners for cleanup and update
+    const cleanup = () => {
+        popover.remove();
+        document.removeEventListener('mousedown', closeHandler);
+        window.removeEventListener('scroll', updatePosition, true); // Capture phase to catch all scrolls
+        window.removeEventListener('resize', updatePosition);
+    };
+
     const closeHandler = (e) => {
         if (!popover.contains(e.target) && e.target !== btn && !btn.contains(e.target)) {
-            popover.remove();
-            document.removeEventListener('mousedown', closeHandler);
+            cleanup();
         }
     };
+
     document.addEventListener('mousedown', closeHandler);
+    window.addEventListener('scroll', updatePosition, true);
+    window.addEventListener('resize', updatePosition);
 }
 
 function renderActivationLines(rowIndex, brackets) {

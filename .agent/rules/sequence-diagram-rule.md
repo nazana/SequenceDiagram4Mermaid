@@ -2,59 +2,20 @@
 trigger: always_on
 ---
 
+# 프로젝트 Conventions
 
-# Project: Sequence Diagram Editor (Vanilla JS)
+이 프로젝트는 개발 및 유지보수 시 다음 규칙을 엄격히 준수해야 합니다.
 
-## Tech Stack
-- **Core**: Vanilla JavaScript (ES Modules), HTML5, CSS3.
-- **No Build Step**: Code runs directly in the browser (ESM). No Webpack/Babel.
-- **Libraries**:
-  - `mermaid.js` (CDN/Local): Diagram rendering.
-  - `phosphor-icons` (Script): UI Icons.
-  - `Sortable.js`: Drag-and-drop reordering.
+## 1. 언어 (Language)
+- **모든 커뮤니케이션**: 한국어 (Korean)
+- **모든 문서화**: 한국어 (Task List, Changelog, Readme, 주석 등)
+  - 단, 코드 변수명이나 커밋 메시지의 prefix(feat, fix 등)는 영문을 허용합니다.
 
-## Project Structure
-- `index.html`: Entry point. Layout scaffolding.
-- `css/style.css`: Global styles, CSS Variables (Theming), Glassmorphism effects.
-- `js/`:
-  - `app.js`: Main application controller. Handles Tab switching (`setupTabs`), Event delegation, and **Synchronization** (`onGridChange`, `syncFromMarkdown`).
-  - `grid-editor.js`: **Core UI Logic**. Renders the Grid Editor. Handles complex DOM manipulation, Event listeners (`updateItem`, `deleteItem`), and **Activation Validation**.
-  - `mermaid-utils.js`: **Pure Logic**. `parseMermaidCode` and `generateMermaidCode`. Responsible for accurate Mermaid syntax conversion.
-  - `storage.js`: LocalStorage management (`saveDiagram`, `loadDiagram`).
+## 2. 브랜치 전략 (Branch Strategy)
+- 새 기능 개발 시 항상 새로운 브랜치를 생성합니다. (`feat/feature-name`)
+- 작업 완료 후 `main` 브랜치에 병합합니다.
+- 병합 시 `CHANGELOG.md`를 반드시 업데이트합니다.
 
-## UI/UX Design System
-- **Aesthetics**: "Premium Dark Mode" with Glassmorphism (`backdrop-filter: blur`).
-- **Colors**: Strictly use CSS Variables (`--color-bg-primary`, `--color-primary`, etc.).
-- **Typography**: System fonts + Inter (if available).
-- **Layout**: 
-  - Flexbox for rows/toolbars.
-  - Absolute positioning for "Activation Lines" (`renderActivationLines`) to span row heights.
-
-## Coding Conventions
-1. **Module System**: Use `import { func } from './module.js';`.
-2. **DOM Manipulation**: 
-   - Use `document.createElement` for container structures.
-   - Use `innerHTML` for repetitive row templates or icon injection.
-   - Always clean up event listeners or use delegation where possible.
-3. **State Management**:
-   - `grid-editor.js` maintains `currentModel`.
-   - Any change runs `triggerChange()` -> `app.js:onGridChange()` -> Updates Markdown & Mermaid.
-
-## Critical Business Logic (DO NOT BREAK)
-1. **Activation Validation (`autoCorrectActivations`)**:
-   - Mermaid requires strict `Activate (+)` before `Deactivate (-)`.
-   - Grid Editor MUST automatically disable invalid `Deactivate` actions to prevent syntax errors.
-   - Always run `autoCorrectActivations` inside a `try-catch` block during `updateItem` or `Swap`.
-2. **Synchronization**:
-   - Grid -> Markdown: `generateMermaidCode`. Check `item.activation` state carefully.
-   - Markdown -> Grid: `parseMermaidCode`. Must handle various arrow types (`->>`, `-->`) correctly.
-3. **Activation Lines**:
-   - Rendered via SVG overlay in `grid-editor.js`.
-   - Must calculate `brackets` to draw continuous vertical lines.
-
-## Known Issues / Quirks
-- **Browser Compability**: `scrollbar-gutter` is used for layout stability.
-- **Sync Discrepancy**: If Grid shows "Red" (Active) but Markdown shows nothing, it implies `autoCorrect` disabled it but UI didn't refresh. Ensure `renderGridEditor` is called after correction.
-
-대화와 문서는 한국어로 작성한다.
-commit은 사용자가 요청할 경우만 진행한다.
+## 3. 코드 스타일
+- **HTML/CSS/JS**: Vanilla 스택을 유지합니다.
+- **디자인**: 프리미엄 다크 테마를 유지하며, 심미성을 최우선으로 고려합니다.

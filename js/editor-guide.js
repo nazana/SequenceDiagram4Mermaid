@@ -2,7 +2,7 @@
  * editor-guide.js
  * Provides Rule-based Smart Guide and Autocomplete for the Markdown Editor.
  */
-import { parseMermaidCode, ARROW_SVGS, ARROW_LABELS } from './mermaid-utils.js';
+import { ARROW_SVGS, ARROW_LABELS } from './mermaid-utils.js';
 
 let suggestionBox = null;
 let currentInput = null;
@@ -46,7 +46,7 @@ function createSuggestionBox() {
     document.body.appendChild(suggestionBox);
 }
 
-function handleInput(e) {
+function handleInput(_e) {
     const text = currentInput.value;
     const cursorPos = currentInput.selectionStart;
 
@@ -79,7 +79,7 @@ function handleInput(e) {
     hideSuggestions();
 }
 
-function showSuggestions(items, cursorPos) {
+function showSuggestions(items, _cursorPos) {
     if (!items.length) {
         hideSuggestions();
         return;
@@ -155,8 +155,7 @@ function handleKeydown(e) {
     } else if (e.key === 'Enter' || e.key === 'Tab') {
         e.preventDefault();
         // Trigger click on selected
-        const selectedValue = SUGGESTIONS.arrow.find(s => s.label === items[selectedIndex].innerText.split('\n')[0])
-            || SUGGESTIONS.keywords.find(s => s.label === items[selectedIndex].innerText.split('\n')[0]);
+
 
         // Re-find based on text content is risky. Let's bind data.
         // Actually click handler uses closure, so we can just simulate click?
@@ -169,7 +168,7 @@ function handleKeydown(e) {
 function applySuggestion(value) {
     const cursorPos = currentInput.selectionStart;
     const text = currentInput.value;
-    const before = text.substring(0, cursorPos);
+
     const after = text.substring(cursorPos);
 
     // Naive replacement: just insert. 
