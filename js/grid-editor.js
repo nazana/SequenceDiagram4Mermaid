@@ -36,7 +36,23 @@ export function renderGridEditor(container, model) {
     // 1. Participants Section
     const pSection = document.createElement('div');
     pSection.className = 'grid-section';
-    pSection.innerHTML = `<h3>참여자 (Participants)</h3>`;
+    pSection.innerHTML = `
+        <div class="section-toggle" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer; margin-bottom: 0.5rem; user-select: none;">
+            <h3 style="margin:0;">참여자 (Participants)</h3>
+            <i class="ph ph-caret-down" style="transition: transform 0.2s;"></i>
+        </div>
+        <div class="section-content"></div>
+    `;
+
+    const pHeaderToggle = pSection.querySelector('.section-toggle');
+    const pContent = pSection.querySelector('.section-content');
+    const pIcon = pHeaderToggle.querySelector('i');
+
+    pHeaderToggle.addEventListener('click', () => {
+        const isHidden = pContent.style.display === 'none';
+        pContent.style.display = isHidden ? 'block' : 'none';
+        pIcon.style.transform = isHidden ? 'rotate(0deg)' : 'rotate(180deg)'; // Rotate 180 for up
+    });
 
     // Wrapper for Visual Unity
     const pWrapper = document.createElement('div');
@@ -65,6 +81,9 @@ export function renderGridEditor(container, model) {
     `;
     pWrapper.appendChild(pHeader);
 
+    // Append wrapper to content div instead of section directly
+    pContent.appendChild(pWrapper);
+
     const pList = document.createElement('div');
     pList.className = 'participant-list';
     pList.style.marginBottom = '0'; // Remove default margin if any
@@ -77,14 +96,14 @@ export function renderGridEditor(container, model) {
 
         item.innerHTML = `
             <span class="col-handle"><i class="ph ph-dots-six-vertical"></i></span>
-            <input type="text" class="input-sm p-id" value="${p.id}" placeholder="ID (e.g. A)">
-            <input type="text" class="input-sm p-name" value="${p.name}" placeholder="Name (Display)">
+            <input type="text" class="input-sm p-id" value="${p.logicalId || p.id}" placeholder="ID (Logical)">
+            <input type="text" class="input-sm p-name" value="${p.name || ''}" placeholder="Name (Display)">
             <button class="btn-icon btn-sm btn-delete-p" data-index="${index}"><i class="ph ph-trash"></i></button>
         `;
 
         // Events
         const inputs = item.querySelectorAll('input');
-        inputs.forEach(inp => inp.addEventListener('input', (e) => updateParticipant(index, e.target.classList.contains('p-id') ? 'id' : 'name', e.target.value)));
+        inputs.forEach(inp => inp.addEventListener('input', (e) => updateParticipant(index, e.target.classList.contains('p-id') ? 'logicalId' : 'name', e.target.value)));
 
         item.querySelector('.btn-delete-p').addEventListener('click', () => deleteParticipant(index));
 
@@ -92,7 +111,7 @@ export function renderGridEditor(container, model) {
     });
 
     pWrapper.appendChild(pList);
-    pSection.appendChild(pWrapper);
+    // pSection.appendChild(pWrapper); // Moved to pContent
 
     // Init Sortable for Participants
     if (typeof Sortable !== 'undefined') {
@@ -117,33 +136,51 @@ export function renderGridEditor(container, model) {
     btnAddP.innerHTML = `<i class="ph ph-plus"></i> 참여자 추가`;
     btnAddP.onclick = addParticipant;
 
-    pSection.appendChild(btnAddP);
+    pSection.appendChild(btnAddP); // Will move to pContent below
+    pContent.appendChild(btnAddP); // Correctly append to content div
     wrapper.appendChild(pSection);
 
     // 2. Sequence Section
     const sSection = document.createElement('div');
     sSection.className = 'grid-section';
     sSection.innerHTML = `
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+        <div class="section-toggle" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; cursor: pointer; user-select: none;">
             <h3 style="margin:0;">시퀀스 (Sequence)</h3>
-            <label class="toggle-label" style="display: flex; align-items: center; font-size: 0.85rem; color: var(--color-text-secondary); cursor: pointer;">
-                <input type="checkbox" id="chk-autonumber" ${model.config?.autonumber ? 'checked' : ''} style="margin-right: 0.5rem;">
-                Autonumber
-            </label>
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <button id="btn-autonumber" class="btn-icon ${model.config?.autonumber ? 'active' : ''}" title="Toggle Autonumber" onclick="event.stopPropagation()" style="color: ${model.config?.autonumber ? 'var(--color-primary)' : 'var(--color-text-secondary)'}">
+                    <i class="ph ph-list-numbers" style="font-size: 1.2rem;"></i>
+                </button>
+                <i class="ph ph-caret-down" style="transition: transform 0.2s;"></i>
+            </div>
         </div>
+        <div class="section-content"></div>
     `;
 
-    // Bind Event immediately after creating elements
-    setTimeout(() => {
-        const chk = sSection.querySelector('#chk-autonumber');
-        if (chk) {
-            chk.addEventListener('change', (e) => {
-                if (!currentModel.config) currentModel.config = {};
-                currentModel.config.autonumber = e.target.checked;
-                triggerChange();
-            });
-        }
-    }, 0);
+    const sHeaderToggle = sSection.querySelector('.section-toggle');
+    const sContent = sSection.querySelector('.section-content');
+    const sIcon = sHeaderToggle.querySelector('.ph-caret-down');
+
+    // Autonumber Logic
+    const btnAutonumber = sSection.querySelector('#btn-autonumber');
+    btnAutonumber.addEventListener('click', (e) => {
+        // Toggle logic
+        if (!model.config) model.config = {};
+        model.config.autonumber = !model.config.autonumber;
+
+        // Update UI
+        const isActive = model.config.autonumber;
+        btnAutonumber.classList.toggle('active', isActive);
+        btnAutonumber.style.color = isActive ? 'var(--color-primary)' : 'var(--color-text-secondary)';
+
+        // Render & Trigger
+        triggerChange(); // This will regenerate code with/without autonumber and update markdown/canvas
+    });
+
+    sHeaderToggle.addEventListener('click', () => {
+        const isHidden = sContent.style.display === 'none';
+        sContent.style.display = isHidden ? 'block' : 'none';
+        sIcon.style.transform = isHidden ? 'rotate(0deg)' : 'rotate(180deg)';
+    });
 
     // Container for visual unity
     const sWrapper = document.createElement('div');
@@ -301,7 +338,9 @@ export function renderGridEditor(container, model) {
     }
 
     sWrapper.appendChild(sTable); // Put table inside wrapper
-    sSection.appendChild(sWrapper); // Put wrapper inside section
+    sWrapper.appendChild(sTable); // Put table inside wrapper
+    // sSection.appendChild(sWrapper); // Moved to sContent
+    sContent.appendChild(sWrapper);
 
     const btnAddS = document.createElement('button');
     btnAddS.className = 'btn btn-ghost btn-sm';
@@ -309,7 +348,8 @@ export function renderGridEditor(container, model) {
     btnAddS.innerHTML = `<i class="ph ph-plus"></i> 메시지 추가`;
     btnAddS.onclick = addItem;
 
-    sSection.appendChild(btnAddS);
+    // sSection.appendChild(btnAddS); // Moved to sContent
+    sContent.appendChild(btnAddS);
     wrapper.appendChild(sSection);
 
     container.appendChild(wrapper);
@@ -317,8 +357,9 @@ export function renderGridEditor(container, model) {
 
 function getParticipantOptions(participants, selectedId) {
     return participants.map(p => {
-        const displayName = p.name || '';
-        return `<option value="${p.id}" ${p.id === selectedId ? 'selected' : ''}>${p.id} (${displayName})</option>`;
+        const logicalId = p.logicalId || p.id;
+        const name = p.name || logicalId;
+        return `<option value="${p.id}" ${p.id === selectedId ? 'selected' : ''}>[${logicalId}] ${name}</option>`;
     }).join('');
 }
 
@@ -329,7 +370,8 @@ function triggerChange() {
 
 function addParticipant() {
     const id = `P${currentModel.participants.length + 1}`;
-    currentModel.participants.push({ id, name: `Participant ${id}`, type: 'participant' });
+    // Default Logical ID matches Key
+    currentModel.participants.push({ id, logicalId: id, name: `Participant ${id}`, type: 'participant' });
     renderGridEditor(currentContainer, currentModel);
     triggerChange();
 }

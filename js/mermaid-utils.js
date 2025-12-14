@@ -71,6 +71,7 @@ export function parseMermaidCode(code) {
 
     // Regex helpers
     // participant A as Alice
+    // participant A as [ID] Alice
     const participantRegex = /^(participant|actor)\s+([^\s]+)(?:\s+as\s+(.+))?$/i;
     // A->>B: text, A-)B: text, A-xB: text
     // Improved regex: use lazy match (+?) for source/target to handle "A->B" without spaces
@@ -87,14 +88,34 @@ export function parseMermaidCode(code) {
         }
 
         // Match Participant
+        // Match Participant
         const pMatch = line.match(participantRegex);
         if (pMatch) {
-            const type = pMatch[1]; // participant or actor
-            const id = pMatch[2];
-            const name = pMatch[3] || id; // if no alias, use id
-            // Avoid duplicates
+            const type = pMatch[1];
+            const id = pMatch[2]; // Mermaid Key
+            const rawAlias = pMatch[3] || '';
+
+            // Default values
+            let logicalId = id;
+            let name = rawAlias || id;
+
+            // Parse [ID] Name format from alias
+            // alias examples: "Alice", "[AUTH] Auth Server", "[User]", "User"
+            const idMatch = rawAlias.match(/^\[([^\]]+)\]\s*(.*)$/);
+            if (idMatch) {
+                logicalId = idMatch[1];
+                name = idMatch[2] || logicalId;
+            } else if (rawAlias) {
+                // If there is an alias but no [ID], treat the whole alias as Name, and Key as Logical ID?
+                // Or try to infer? 
+                // Let's assume if no brackets, logicalId is Key (id), name is alias.
+                // UNLESS user modified logic requires defaulting logicalId to something else.
+                // For now: logicalId = id, name = rawAlias. (This matches "participant A as Alice")
+                name = rawAlias;
+            }
+
             if (!participants.find(p => p.id === id)) {
-                participants.push({ id, name, type });
+                participants.push({ id, logicalId, name, type });
             }
             return;
         }
@@ -161,9 +182,15 @@ export function generateMermaidCode(model) {
 
     // Participants
     model.participants.forEach(p => {
-        // quotes for name if needed? 
-        const safeName = p.name.includes(' ') ? `"${p.name}"` : p.name;
-        code += `    participant ${p.id} as ${safeName}\n`;
+        // Format: participant Key as [LogicalID] Name
+        const key = p.id;
+        const logicalId = p.logicalId || key;
+        const name = p.name || logicalId;
+
+        // Escape quotes if needed
+        const safeName = name.includes(' ') ? `"${name}"` : name;
+
+        code += `    participant ${key} as [${logicalId}] ${safeName}\n`;
     });
 
     code += '\n';

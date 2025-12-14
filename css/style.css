@@ -321,11 +321,16 @@ body {
     font-size: 0.9rem;
     resize: none;
     outline: none;
+    line-height: 1.5;
+    overflow-y: auto;
+    scrollbar-gutter: stable;
 }
 
 #grid-editor-container {
-    padding: 1rem;
+    flex: 1;
     overflow-y: auto;
+    padding: 1rem;
+    scrollbar-gutter: stable;
 }
 
 /* Preview Area */
