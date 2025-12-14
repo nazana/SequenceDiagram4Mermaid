@@ -189,8 +189,9 @@ export function generateMermaidCode(model) {
 
         // Escape quotes if needed
         const safeName = name.includes(' ') ? `"${name}"` : name;
+        const type = p.type || 'participant';
 
-        code += `    participant ${key} as [${logicalId}] ${safeName}\n`;
+        code += `    ${type} ${key} as [${logicalId}] ${safeName}\n`;
     });
 
     code += '\n';

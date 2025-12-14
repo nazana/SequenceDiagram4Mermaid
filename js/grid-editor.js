@@ -76,6 +76,7 @@ export function renderGridEditor(container, model) {
     pHeader.innerHTML = `
         <span class="col-handle"></span>
         <span style="width: 80px;">ID</span>
+        <span style="width: 90px;">Type</span>
         <span style="flex: 1;">표시 이름 (Name)</span>
         <span style="width: 28px;"></span> 
     `;
@@ -97,13 +98,25 @@ export function renderGridEditor(container, model) {
         item.innerHTML = `
             <span class="col-handle"><i class="ph ph-dots-six-vertical"></i></span>
             <input type="text" class="input-sm p-id" value="${p.logicalId || p.id}" placeholder="ID (Logical)">
+            <select class="input-sm p-type" style="width: 90px;">
+                <option value="participant" ${p.type === 'participant' ? 'selected' : ''}>Participant</option>
+                <option value="actor" ${p.type === 'actor' ? 'selected' : ''}>Actor</option>
+            </select>
             <input type="text" class="input-sm p-name" value="${p.name || ''}" placeholder="Name (Display)">
             <button class="btn-icon btn-sm btn-delete-p" data-index="${index}"><i class="ph ph-trash"></i></button>
         `;
 
         // Events
-        const inputs = item.querySelectorAll('input');
-        inputs.forEach(inp => inp.addEventListener('input', (e) => updateParticipant(index, e.target.classList.contains('p-id') ? 'logicalId' : 'name', e.target.value)));
+        const inputs = item.querySelectorAll('input, select');
+        inputs.forEach(inp => inp.addEventListener('input', (e) => {
+            // Handle select change (input event works for select too in modern browsers, or use 'change')
+            const cls = e.target.classList;
+            let field = 'name';
+            if (cls.contains('p-id')) field = 'logicalId';
+            else if (cls.contains('p-type')) field = 'type';
+
+            updateParticipant(index, field, e.target.value);
+        }));
 
         item.querySelector('.btn-delete-p').addEventListener('click', () => deleteParticipant(index));
 
