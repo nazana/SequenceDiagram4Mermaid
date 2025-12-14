@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mermaid Editor - 사용 가이드</title>
+    <!-- CSS -->
+    <link rel="stylesheet" href="css/style.css">
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap"
+        rel="stylesheet">
+    <!-- Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <style>
+        .guide-container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 3rem 1.5rem;
+            width: 100%;
+        }
+
+        .hero-section {
+            text-align: center;
+            margin-bottom: 4rem;
+            padding: 3rem 1rem;
+            background: linear-gradient(180deg, rgba(22, 27, 34, 0) 0%, rgba(22, 27, 34, 0.5) 100%);
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .hero-title {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin-bottom: 1rem;
+            background: linear-gradient(90deg, #fff, #8b949e);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hero-subtitle {
+            font-size: 1.1rem;
+            color: var(--color-text-secondary);
+            max-width: 600px;
+            margin: 0 auto 2rem;
+            line-height: 1.6;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+            margin-bottom: 4rem;
+        }
+
+        .feature-card {
+            background-color: var(--color-bg-panel);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            transition: transform 0.2s, border-color 0.2s;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-2px);
+            border-color: var(--color-primary);
+        }
+
+        .feature-icon {
+            width: 48px;
+            height: 48px;
+            background-color: var(--color-bg-hover);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: var(--color-primary);
+            margin-bottom: 1rem;
+        }
+
+        .toc-nav {
+            position: sticky;
+            top: 2rem;
+            background-color: var(--color-bg-panel);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: 1rem;
+            margin-bottom: 2rem;
+            display: none;
+            /* Desktop only ideally */
+        }
+
+        .step-list {
+            position: relative;
+            padding-left: 2rem;
+        }
+
+        .step-list::before {
+            content: '';
+            position: absolute;
+            left: 0.9rem;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background-color: var(--color-border);
+        }
+
+        .step-item {
+            position: relative;
+            margin-bottom: 2rem;
+        }
+
+        .step-number {
+            position: absolute;
+            left: -2rem;
+            width: 2rem;
+            height: 2rem;
+            background-color: var(--color-bg-base);
+            border: 2px solid var(--color-primary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: var(--color-primary);
+            z-index: 1;
+        }
+
+        .tutorial-image {
+            width: 100%;
+            height: auto;
+            border-radius: 8px;
+            border: 1px solid var(--color-border);
+            margin: 1rem 0;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            /* Placeholder background */
+            background: var(--color-bg-base);
+            min-height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--color-text-secondary);
+        }
+
+        .tip-box {
+            background-color: rgba(63, 185, 80, 0.1);
+            border: 1px solid rgba(63, 185, 80, 0.3);
+            border-radius: 6px;
+            padding: 1rem;
+            margin-top: 1rem;
+            display: flex;
+            gap: 1rem;
+        }
+
+        .tip-box i {
+            color: var(--color-success);
+            font-size: 1.2rem;
+            margin-top: 0.1rem;
+        }
+
+        h2 {
+            font-size: 1.8rem;
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid var(--color-border);
+            padding-bottom: 0.5rem;
+            margin-top: 3rem;
+        }
+
+        h3 {
+            font-size: 1.3rem;
+            margin-bottom: 1rem;
+            color: var(--color-text-primary);
+            margin-top: 1.5rem;
+        }
+
+        p {
+            color: var(--color-text-secondary);
+            line-height: 1.7;
+            margin-bottom: 1rem;
+        }
+
+        code {
+            font-family: var(--font-mono);
+            background: var(--color-bg-hover);
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="logo">
+                <a href="dashboard.html"
+                    style="text-decoration: none; color: inherit; display: flex; align-items: center; gap: 0.5rem;">
+                    <i class="ph ph-waves"></i>
+                    <span>Mermaid Editor</span>
+                </a>
+            </div>
+            <div class="toolbar">
+                <a href="index.html" class="btn btn-primary"><i class="ph ph-play"></i> 에디터 시작하기</a>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="app-main" style="overflow-y: auto;">
+            <div class="guide-container">
+
+                <!-- Hero -->
+                <section class="hero-section">
+                    <h1 class="hero-title">복잡한 다이어그램,<br>이제 클릭으로 완성하세요.</h1>
+                    <p class="hero-subtitle">
+                        Mermaid 문법을 몰라도 괜찮습니다.<br>
+                        Grid Editor가 코드를 알아서 작성해 주니까요.
+                    </p>
+                    <div style="display: flex; gap: 1rem; justify-content: center;">
+                        <a href="#tutorial" class="btn btn-primary">튜토리얼 보기</a>
+                        <a href="index.html" class="btn btn-ghost">바로 시작하기 <i class="ph ph-arrow-right"></i></a>
+                    </div>
+                </section>
+
+                <!-- Key Features -->
+                <section class="feature-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon"><i class="ph ph-table"></i></div>
+                        <h3>Grid Editor</h3>
+                        <p>엑셀처럼 행을 추가하고 내용을 입력하면 됩니다. 복잡한 괄호나 화살표 기호는 신경 쓰지 마세요.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon"><i class="ph ph-arrows-left-right"></i></div>
+                        <h3>Dual Sync</h3>
+                        <p>Grid에서 수정하면 Markdown이, Markdown을 수정하면 Grid가 즉시 업데이트됩니다.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon"><i class="ph ph-magic-wand"></i></div>
+                        <h3>Auto Correct</h3>
+                        <p>실수로 꼬인 Activation(막대바) 순서를 자동으로 감지하고 올바르게 고쳐줍니다.</p>
+                    </div>
+                </section>
+
+                <!-- Tutorial -->
+                <section id="tutorial">
+                    <h2><i class="ph ph-graduation-cap"></i> 단계별 튜토리얼</h2>
+
+                    <div class="step-list">
+                        <!-- Step 1 -->
+                        <div class="step-item">
+                            <div class="step-number">1</div>
+                            <h3>참여자(Participant) 정의하기</h3>
+                            <p>에디터를 열면 상단에 참여자 목록이 보입니다. 기본으로 생성된 <code>Alice</code>, <code>Bob</code> 등의 이름을 클릭하여 내
+                                프로젝트에 맞게 수정하세요.</p>
+                            <div class="tutorial-image">
+                                <!-- Placeholder for Screenshot -->
+                                <div style="text-align: center;">
+                                    <i class="ph ph-users"
+                                        style="font-size: 3rem; margin-bottom: 0.5rem; opacity: 0.5;"></i>
+                                    <p>참여자 이름 클릭 -> 수정 -> 엔터</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Step 2 -->
+                        <div class="step-item">
+                            <div class="step-number">2</div>
+                            <h3>메시지 흐름 만들기 (Grid)</h3>
+                            <p><code>Source</code>(보내는 사람)와 <code>Target</code>(받는 사람)을 선택하고 메시지를 입력합니다.</p>
+                            <p>순서가 틀렸다면? 각 행 왼쪽의 핸들(<code>::</code>)을 잡고 드래그하여 위아래로 옮기세요.</p>
+                            <div class="tip-box">
+                                <i class="ph ph-lightbulb"></i>
+                                <div>
+                                    <strong>Tip:</strong> <code>Swap</code> (<i class="ph ph-arrows-left-right"></i>)
+                                    버튼을 누르면 보내는 사람과 받는 사람이 즉시 뒤바뀝니다. 응답 메시지를 만들 때 유용합니다.
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Step 3 -->
+                        <div class="step-item">
+                            <div class="step-number">3</div>
+                            <h3>활성화(Activation) 제어</h3>
+                            <p>메시지를 보낼 때 생명선을 활성화하려면 <code>(+)</code> 버튼을 누르세요. 작업이 끝나는 시점에 <code>(-)</code> 버튼을 누르면
+                                비활성화됩니다.</p>
+                            <div class="tutorial-image">
+                                <div style="text-align: center;">
+                                    <i class="ph ph-chart-bar"
+                                        style="font-size: 3rem; margin-bottom: 0.5rem; opacity: 0.5;"></i>
+                                    <p>초록색(+)은 활성화 시작, 빨간색(-)은 종료</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Step 4 -->
+                        <div class="step-item">
+                            <div class="step-number">4</div>
+                            <h3>줌 & 팬으로 탐색하기</h3>
+                            <p>다이어그램이 커지면 마우스 휠로 <strong>줌(Zoom)</strong>을, 빈 공간을 드래그하여 <strong>팬(Pan)</strong>을 할 수
+                                있습니다.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- FAQ -->
+                <section>
+                    <h2><i class="ph ph-question"></i> 자주 묻는 질문 (FAQ)</h2>
+
+                    <div style="margin-bottom: 1.5rem;">
+                        <h3 style="margin-top: 0; font-size: 1.1rem; color: var(--color-primary);">Q. 데이터는 어디에 저장되나요?
+                        </h3>
+                        <p>A. 100% 사용자의 <strong>브라우저 로컬 스토리지</strong>에 저장됩니다. 서버로 전송되지 않아 보안상 안전합니다.</p>
+                    </div>
+
+                    <div style="margin-bottom: 1.5rem;">
+                        <h3 style="margin-top: 0; font-size: 1.1rem; color: var(--color-primary);">Q. 이미지가 안 보여요 (Zoom
+                            문제)</h3>
+                        <p>A. 우측 하단의 <strong>초기화 버튼</strong>(<i class="ph ph-arrows-out"></i>)을 눌러보세요. 줌 레벨이 100%로 돌아오고
+                            위치가 중앙으로 맞춰집니다.</p>
+                    </div>
+
+                    <div style="margin-bottom: 1.5rem;">
+                        <h3 style="margin-top: 0; font-size: 1.1rem; color: var(--color-primary);">Q. Markdown 탭은 언제
+                            쓰나요?</h3>
+                        <p>A. Grid Editor로 표현하기 힘든 복잡한 문법(Loop, Alt, Note 등)을 직접 수정하고 싶을 때 사용하세요. 수정한 내용은 Grid에도 반영됩니다.
+                        </p>
+                    </div>
+                </section>
+
+                <div
+                    style="text-align: center; margin-top: 4rem; padding-top: 2rem; border-top: 1px solid var(--color-border); color: var(--color-text-muted);">
+                    <p>© 2025 Mermaid Editor Enhanced. Open Source Project.</p>
+                </div>
+
+            </div>
+        </main>
+    </div>
+</body>
+
+</html>

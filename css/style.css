@@ -47,6 +47,11 @@ body {
     /* App-like feel */
 }
 
+a {
+    text-decoration: none;
+    color: inherit;
+}
+
 /* Scrollbar */
 ::-webkit-scrollbar {
     width: 8px;
@@ -357,6 +362,11 @@ body {
     /* Dot pattern background */
     background-image: radial-gradient(var(--color-border) 1px, transparent 1px);
     background-size: 20px 20px;
+    cursor: grab;
+}
+
+.mermaid-container:active {
+    cursor: grabbing;
 }
 
 /* Buttons */

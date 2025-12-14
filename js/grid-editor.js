@@ -556,7 +556,11 @@ function updateItem(index, field, value) {
     // Auto-correct subsequent rows if activation flow changed
     if (field === 'activation' || field === 'source' || field === 'target') {
         try {
-            autoCorrectActivations(currentModel);
+            const wasCorrected = autoCorrectActivations(currentModel);
+            if (wasCorrected) {
+                // Optional: Show toast or log to let user know why it turned off
+                console.warn("Auto-corrected invalid activations.");
+            }
             renderGridEditor(currentContainer, currentModel);
         } catch (e) {
             console.error("Auto-correction error in updateItem:", e);

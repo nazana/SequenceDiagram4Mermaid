@@ -28,6 +28,7 @@ const historyList = document.getElementById('history-list');
 let panzoomInstance = null;
 let activeTab = 'grid'; // grid | markdown
 let currentDiagramId = null;
+window.isPanning = false;
 
 // Initial Default Diagram
 // Initial Default Diagram
@@ -70,18 +71,24 @@ async function init() {
     initGridEditor(onGridChange);
 
     // Setup Panzoom
-    /*
-    panzoomInstance = Panzoom(mermaidOutput, {
-        maxScale: 5,
-        minScale: 0.1,
-        step: 0.1,
-        contain: 'outside',
-    });
-    */
+    if (typeof Panzoom !== 'undefined') {
+        panzoomInstance = Panzoom(mermaidOutput, {
+            maxScale: 10,
+            minScale: 0.1,
+            step: 0.1,
+            // contain: 'outside', // Removed to prevent locking issues with dynamic content
+            canvas: true, // Treat as canvas (better for SVG)
+        });
+
+        // Fix for "problems with mermaid": Mermaid re-rendering might not need Panzoom re-init, 
+        // as we attached it to the wrapper.
+    } else {
+        console.error('Panzoom library not loaded');
+    }
 
     // Setup Event Listeners
     setupEditors();
-    // setupToolbar();
+    setupToolbar();
     setupDetailPanel();
     setupDataActions();
 
@@ -192,7 +199,6 @@ window.onGridRowSelect = function (index) {
 };
 
 function setupCanvasInteractions() {
-    // Add click listeners to Mermaid Messages
     const messageTexts = mermaidOutput.querySelectorAll('.messageText');
     const model = parseMermaidCode(markdownInput.value);
 
@@ -200,6 +206,8 @@ function setupCanvasInteractions() {
         el.style.cursor = 'pointer';
         el.addEventListener('click', (e) => {
             e.stopPropagation();
+
+            if (window.isPanning) return;
 
             // Reverse mapping: Message Index -> Grid Index
             let currentMsgCount = 0;
@@ -253,10 +261,16 @@ function setupEditors() {
 }
 
 function setupToolbar() {
+    if (!panzoomInstance) return;
+
     mermaidContainer.addEventListener('wheel', panzoomInstance.zoomWithWheel);
     btnZoomIn.addEventListener('click', () => panzoomInstance.zoomIn());
     btnZoomOut.addEventListener('click', () => panzoomInstance.zoomOut());
     btnZoomReset.addEventListener('click', () => panzoomInstance.reset());
+
+    // Setup state tracking
+    mermaidOutput.addEventListener('panzoomstart', () => { window.isPanning = true; });
+    mermaidOutput.addEventListener('panzoomend', () => { setTimeout(() => window.isPanning = false, 50); });
 }
 
 function setupDetailPanel() {
