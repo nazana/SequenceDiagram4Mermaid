@@ -316,9 +316,10 @@ export function renderGridEditor(container, model) {
 }
 
 function getParticipantOptions(participants, selectedId) {
-    return participants.map(p =>
-        `<option value="${p.id}" ${p.id === selectedId ? 'selected' : ''}>${p.id} (${p.name})</option>`
-    ).join('');
+    return participants.map(p => {
+        const displayName = p.name || '';
+        return `<option value="${p.id}" ${p.id === selectedId ? 'selected' : ''}>${p.id} (${displayName})</option>`;
+    }).join('');
 }
 
 // Actions
@@ -335,6 +336,14 @@ function addParticipant() {
 
 function updateParticipant(index, field, value) {
     currentModel.participants[index][field] = value;
+
+    // Update all select boxes in the sequence grid to reflect name changes
+    const selects = currentContainer.querySelectorAll('.seq-source, .seq-target');
+    selects.forEach(select => {
+        const currentVal = select.value;
+        select.innerHTML = getParticipantOptions(currentModel.participants, currentVal);
+    });
+
     triggerChange();
 }
 
