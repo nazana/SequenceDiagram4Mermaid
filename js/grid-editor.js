@@ -94,24 +94,27 @@ export function renderGridEditor(container, model) {
         item.innerHTML = `
             <span class="col-handle"><i class="ph ph-dots-six-vertical"></i></span>
             <span class="col-no grid-col-no">${index + 1}</span>
-            <select class="input-sm p-type" style="width: 90px;">
-                <option value="participant" ${p.type === 'participant' ? 'selected' : ''}>Participant</option>
-                <option value="actor" ${p.type === 'actor' ? 'selected' : ''}>Actor</option>
-            </select>
+            <button class="btn-participant-select p-type-btn" style="width: 90px; flex: none;">
+                ${p.type.charAt(0).toUpperCase() + p.type.slice(1)}
+            </button>
             <input type="text" class="input-sm p-id" style="width: 80px;" value="${p.logicalId || p.id}" placeholder="ID">
             <input type="text" class="input-sm p-name" style="flex: 1;" value="${p.name || ''}" placeholder="Name (Display)">
             <button class="btn-icon btn-sm btn-delete-p" data-index="${index}"><i class="ph ph-trash"></i></button>
         `;
 
-        const inputs = item.querySelectorAll('input, select');
+        const inputs = item.querySelectorAll('input');
         inputs.forEach(inp => inp.addEventListener('input', (e) => {
             const cls = e.target.classList;
             let field = 'name';
             if (cls.contains('p-id')) field = 'logicalId';
-            else if (cls.contains('p-type')) field = 'type';
 
             updateParticipant(index, field, e.target.value);
         }));
+
+        item.querySelector('.p-type-btn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            openParticipantTypeSelector(e, index, p.type);
+        });
 
         item.querySelector('.btn-delete-p').addEventListener('click', () => deleteParticipant(index));
         pList.appendChild(item);
@@ -625,6 +628,65 @@ function openParticipantSelector(event, index, field, currentVal) {
         item.addEventListener('click', (e) => {
             e.stopPropagation();
             updateItem(index, field, p.id);
+            cleanup();
+        });
+
+        popover.appendChild(item);
+    });
+
+    document.body.appendChild(popover);
+
+    const cleanup = () => {
+        popover.remove();
+        document.removeEventListener('mousedown', closeHandler);
+        window.removeEventListener('scroll', updatePosition, true);
+        window.removeEventListener('resize', updatePosition);
+    };
+
+    const closeHandler = (e) => {
+        if (!popover.contains(e.target) && e.target !== btn && !btn.contains(e.target)) {
+            cleanup();
+        }
+    };
+
+    document.addEventListener('mousedown', closeHandler);
+    window.addEventListener('scroll', updatePosition, true);
+    window.addEventListener('resize', updatePosition);
+}
+
+function openParticipantTypeSelector(event, index, currentVal) {
+    const existing = document.querySelector('.participant-selector-popover');
+    if (existing) existing.remove();
+
+    const btn = event.currentTarget;
+
+    const popover = document.createElement('div');
+    popover.className = 'participant-selector-popover';
+    popover.style.position = 'fixed';
+
+    const updatePosition = () => {
+        const rect = btn.getBoundingClientRect();
+        popover.style.top = `${rect.bottom + 4}px`;
+        popover.style.left = `${rect.left}px`;
+        popover.style.minWidth = `${rect.width}px`;
+    };
+    updatePosition();
+
+    const types = [
+        { id: 'participant', label: 'Participant' },
+        { id: 'actor', label: 'Actor' }
+    ];
+
+    types.forEach(t => {
+        const item = document.createElement('div');
+        item.className = 'participant-option';
+        if (t.id === currentVal) item.classList.add('selected');
+
+        item.innerHTML = `<span>${t.label}</span>`;
+
+        item.addEventListener('click', (e) => {
+            e.stopPropagation();
+            updateParticipant(index, 'type', t.id);
             cleanup();
         });
 

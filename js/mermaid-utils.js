@@ -120,7 +120,12 @@ export function parseMermaidCode(code) {
         if (pMatch) {
             const type = pMatch[1];
             const id = pMatch[2]; // Mermaid Key
-            const rawAlias = pMatch[3] || '';
+            let rawAlias = pMatch[3] || '';
+
+            // Strip quotes if present
+            if (rawAlias.startsWith('"') && rawAlias.endsWith('"')) {
+                rawAlias = rawAlias.slice(1, -1);
+            }
 
             // Default values
             let logicalId = id;
@@ -134,10 +139,6 @@ export function parseMermaidCode(code) {
                 name = idMatch[2] || logicalId;
             } else if (rawAlias) {
                 // If there is an alias but no [ID], treat the whole alias as Name, and Key as Logical ID?
-                // Or try to infer? 
-                // Let's assume if no brackets, logicalId is Key (id), name is alias.
-                // UNLESS user modified logic requires defaulting logicalId to something else.
-                // For now: logicalId = id, name = rawAlias. (This matches "participant A as Alice")
                 name = rawAlias;
             }
 
@@ -218,12 +219,15 @@ export function generateMermaidCode(model) {
         const key = p.id;
         const logicalId = p.logicalId || key;
         const name = p.name || logicalId;
+        let type = p.type || 'participant';
+        /* Revert to only supporting participant/actor */
+        if (type !== 'actor') type = 'participant';
 
-        // Escape quotes if needed
-        const safeName = name.includes(' ') ? `"${name}"` : name;
-        const type = p.type || 'participant';
+        const label = `[${logicalId}] ${name}`;
+        // Quote if contains spaces or special chars to avoid syntax errors
+        const safeLabel = /[\s\[\]]/.test(label) ? `"${label}"` : label;
 
-        code += `    ${type} ${key} as [${logicalId}] ${safeName}\n`;
+        code += `    ${type} ${key} as ${safeLabel}\n`;
     });
 
     code += '\n';
