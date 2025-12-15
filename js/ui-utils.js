@@ -14,7 +14,7 @@ function ensureModalContainer() {
     modalContainer.id = 'custom-modal-container';
     modalContainer.className = 'modal-backdrop hidden';
     modalContainer.innerHTML = `
-        <div class="modal-dialog">
+        <div class="modal-content" style="width: 400px; margin: 0 auto; margin-top: 15vh;">
             <div class="modal-header">
                 <h3 id="modal-title">Title</h3>
                 <button class="btn-icon" id="modal-close"><i class="ph ph-x"></i></button>
@@ -66,10 +66,37 @@ function openModal(title, contentHtml, buttons = []) {
 
     // Focus first input if exists
     const input = modalContainer.querySelector('input');
-    if (input) input.focus();
+    if (input) {
+        input.focus();
+        input.select(); // Select text for easier editing
+    } else {
+        // Focus confirm button if no input
+        // Find the primary button or simply focus the container to trap keyboard
+        const primaryBtn = footer.querySelector('.btn-primary');
+        if (primaryBtn) primaryBtn.focus();
+    }
+
+    // Keyboard Handler
+    const handleKeydown = (e) => {
+        if (e.key === 'Escape') {
+            e.preventDefault();
+            closeModal(null);
+        } else if (e.key === 'Enter') {
+            e.preventDefault();
+            // Trigger the last button (usually 'Confirm' or 'OK')
+            // Or specifically looks for btn-primary
+            const primaryBtn = footer.querySelector('.btn-primary');
+            if (primaryBtn) primaryBtn.click();
+        }
+    };
+
+    window.addEventListener('keydown', handleKeydown);
 
     return new Promise((resolve) => {
-        currentResolve = resolve;
+        currentResolve = (value) => {
+            window.removeEventListener('keydown', handleKeydown);
+            resolve(value);
+        };
     });
 }
 

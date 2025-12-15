@@ -241,6 +241,7 @@
         .folder-info {
             flex: 1;
             overflow: hidden;
+            
         }
 
         .folder-name {
@@ -352,7 +353,8 @@
         }
 
         .modal-content {
-            background-color: var(--color-bg-panel);
+            background-color: var(--color-bg-base);
+            /* Body/Footer background */
             border: 1px solid var(--color-border);
             border-radius: var(--border-radius);
             width: 400px;
@@ -363,12 +365,16 @@
         }
 
         .modal-header {
-            padding: 1rem;
-            border-bottom: 1px solid var(--color-border);
+            padding: 0.8rem 1rem;
+            border-bottom: none !important;
             font-weight: 600;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            background-color: var(--color-bg-panel);
+            /* Header background */
+            border-top-left-radius: var(--border-radius);
+            border-top-right-radius: var(--border-radius);
         }
 
         .modal-body {
@@ -403,11 +409,66 @@
         }
 
         .modal-footer {
-            padding: 1rem;
-            border-top: 1px solid var(--color-border);
+            padding: 0.6rem 1rem;
+            border-top: none !important;
             display: flex;
             justify-content: flex-end;
             gap: 0.5rem;
+        }
+
+        /* Tree View Styles */
+        .tree-row {
+            display: flex;
+            align-items: center;
+            padding: 2px 0;
+            user-select: none;
+        }
+
+        .tree-spacer {
+            width: 20px;
+            flex-shrink: 0;
+        }
+
+        .tree-toggle {
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--color-text-secondary);
+            border-radius: 4px;
+            margin-right: 2px;
+        }
+
+        .tree-toggle:hover {
+            background-color: var(--color-bg-base);
+            color: var(--color-primary);
+        }
+
+        .tree-toggle.hidden {
+            visibility: hidden;
+        }
+
+        .tree-content {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            color: var(--color-text-primary);
+        }
+
+        .tree-content:hover {
+            background-color: var(--color-bg-base);
+        }
+
+        .tree-content.selected {
+            background-color: rgba(var(--color-primary-rgb), 0.1);
+            color: var(--color-primary);
+            font-weight: 500;
         }
     </style>
 </head>
@@ -536,8 +597,14 @@
                 // Check URL Param for group
                 const urlParams = new URLSearchParams(window.location.search);
                 const groupId = urlParams.get('groupId');
+
+                // Set initial history state if not set
+                if (!history.state) {
+                    history.replaceState({ groupId: groupId }, '', window.location);
+                }
+
                 if (groupId) {
-                    handleEnterGroup(groupId);
+                    loadGroupView(groupId);
                 } else {
                     renderBreadcrumb();
                     filterAndRender();
@@ -718,7 +785,16 @@
             }
         };
 
-        window.handleEnterGroup = (id) => {
+        // History & Navigation Logic
+        window.addEventListener('popstate', (event) => {
+            const groupId = event.state ? event.state.groupId : null;
+            loadGroupView(groupId);
+        });
+
+        // Initialize from URL or default
+        // Modified init() calls this differently now, see below
+
+        function loadGroupView(id) {
             currentGroupId = id;
 
             // Update "New Diagram" button link
@@ -729,6 +805,19 @@
 
             renderBreadcrumb();
             filterAndRender();
+        }
+
+        window.handleEnterGroup = (id) => {
+            // Push state for history navigation
+            const url = new URL(window.location);
+            if (id) {
+                url.searchParams.set('groupId', id);
+            } else {
+                url.searchParams.delete('groupId');
+            }
+            history.pushState({ groupId: id }, '', url);
+
+            loadGroupView(id);
         };
 
         window.handleDeleteGroup = async (id) => {
@@ -892,68 +981,91 @@
             selectedDestinationId = null;
             renderMoveTree();
             moveModal.style.display = 'flex';
+
+            // Add Modal Keyboard Listener
+            window.addEventListener('keydown', handleMoveModalKeydown);
         };
 
         window.closeMoveModal = () => {
             moveModal.style.display = 'none';
             moveTargetId = null;
+
+            // Remove Modal Keyboard Listener
+            window.removeEventListener('keydown', handleMoveModalKeydown);
+        };
+
+        const handleMoveModalKeydown = (e) => {
+            if (e.key === 'Escape') {
+                closeMoveModal();
+            } else if (e.key === 'Enter') {
+                confirmMove();
+            }
+        };
+
+        const expandedFolders = new Set(['root']); // Open root by default
+
+        window.toggleFolder = (e, id) => {
+            e.stopPropagation();
+            if (expandedFolders.has(id)) {
+                expandedFolders.delete(id);
+            } else {
+                expandedFolders.add(id);
+            }
+            renderMoveTree();
         };
 
         window.renderMoveTree = () => {
             const groups = getAllGroups();
+            let html = '';
 
-            // Build simple tree structure
-            // We need a flat list in DFS order or build a real tree object.
-            // Let's use recursive render.
+            const renderNode = (group, depth) => {
+                const id = group ? group.id : 'root';
+                const realId = group ? group.id : null;
+                const name = group ? group.name : 'Home (Root)';
 
-            let html = `
-                <div class="folder-tree-item ${selectedDestinationId === null ? 'selected' : ''}" 
-                     onclick="selectDestination(null)">
-                    <i class="ph ph-house"></i> Home (Root)
-                </div>
-            `;
-
-            const renderChildren = (parentId, depth) => {
-                const children = groups.filter(g => g.parentId === parentId);
-                children.forEach(g => {
-                    // Validation: Cannot move group into itself or its children
-                    if (moveTargetType === 'group') {
-                        if (g.id === moveTargetId) return; // Skip self
-                        // Basic circular check (is g a child of moveTargetId?)
-                        // Actually simple recursion here skips children of skipped self automatically?
-                        // No, 'groups' contains all. We must filter.
-                        // The safest is: if g.id === moveTargetId, don't render it AND don't render its children.
-                        // Wait, if we are iterating 'children' of 'parentId', and we skip 'self', we won't recurse into self.
-                        // So checking (g.id === moveTargetId) is enough to prune the subtree of the moving group.
-                    }
-
-                    // Check if g is a descendant of moveTargetId (if moveTargetId is a group)
-                    // Actually, if we skip rendering 'moveTargetId', we naturally skip its children in this recursive function
-                    // because we won't call renderChildren(moveTargetId).
-                    // So simply: if (moveTargetType === 'group' && g.id === moveTargetId) return;
-
-                    if (moveTargetType === 'group' && g.id === moveTargetId) return;
-
-                    const indent = '&nbsp;&nbsp;&nbsp;&nbsp;'.repeat(depth);
-                    const isSelected = selectedDestinationId === g.id ? 'selected' : '';
-
-                    html += `
-                        <div class="folder-tree-item ${isSelected}" onclick="selectDestination('${g.id}')">
-                            <span class="folder-tree-indent">${indent}</span>
-                            <i class="ph-fill ph-folder"></i> ${g.name}
-                        </div>
-                    `;
-                    renderChildren(g.id, depth + 1);
+                const children = groups.filter(g => g.parentId === realId);
+                const validChildren = children.filter(child => {
+                    if (moveTargetType === 'group' && child.id === moveTargetId) return false;
+                    return true;
                 });
+
+                const hasChildren = validChildren.length > 0;
+                const isExpanded = expandedFolders.has(id);
+                const isSelected = selectedDestinationId === realId;
+
+                let spacers = '';
+                for (let i = 0; i < depth; i++) {
+                    spacers += `<div class="tree-spacer"></div>`;
+                }
+
+                let toggleHtml = hasChildren ?
+                    `<div class="tree-toggle" onclick="toggleFolder(event, '${id}')"><i class="ph ${isExpanded ? 'ph-caret-down' : 'ph-caret-right'}"></i></div>` :
+                    `<div class="tree-toggle hidden"></div>`;
+
+                html += `
+                    <div class="tree-row">
+                        ${spacers}
+                        ${toggleHtml}
+                        <div class="tree-content ${isSelected ? 'selected' : ''}" onclick="selectDestination('${realId === null ? 'null' : realId}')">
+                            <i class="ph-fill ${group ? 'ph-folder' : 'ph-house'}"></i>
+                            <span>${name}</span>
+                        </div>
+                    </div>
+                `;
+
+                if (isExpanded) {
+                    validChildren.forEach(c => renderNode(c, depth + 1));
+                }
             };
 
-            renderChildren(null, 0);
+            renderNode(null, 0);
             treeContainer.innerHTML = html;
         };
 
-        window.selectDestination = (id) => {
+        window.selectDestination = (idStr) => {
+            const id = idStr === 'null' ? null : idStr;
             selectedDestinationId = id;
-            renderMoveTree(); // Re-render to update selection style
+            renderMoveTree();
         };
 
         window.confirmMove = () => {
