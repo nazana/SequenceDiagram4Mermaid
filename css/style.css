@@ -125,25 +125,63 @@ a {
 
 /* Panels */
 .editor-panel {
-    flex: 1;
+    position: relative;
+    /* Revert to relative/flex */
+    width: 900px;
+    /* Fixed width */
+    flex: none;
+    /* Don't shrink/grow */
     display: flex;
     flex-direction: column;
     background-color: var(--color-bg-panel);
-    /* Initial width, can be resized later */
-    width: 50%;
-    min-width: 300px;
-    overflow: hidden;
-    /* Ensure content is hidden when collapsed */
-    transition: width 0.2s, min-width 0.2s;
-    /* Smooth visual */
-    position: relative;
+    border-right: 1px solid var(--color-border);
+    transition: margin-left 0.3s ease, width 0.3s ease;
+    /* Animate width/margin */
+    z-index: 50;
 }
 
 .editor-panel.collapsed {
-    width: 40px !important;
-    min-width: 40px !important;
-    flex: none;
-    border-right: 1px solid var(--color-border);
+    margin-left: -900px;
+    /* Hide by moving left */
+    width: 900px;
+    /* Width stays same for content, but panel moves */
+    /* Alternatively, could use width: 0 but that might reflow content uglily.
+       Margin-left is smoother for sliding effect while removing space. */
+}
+
+/* Add toggle button when collapsed - Floating button on active area */
+.collapsed-sidebar-trans-btn {
+    position: absolute;
+    top: 60px;
+    /* Match header bottom */
+    left: 0;
+    z-index: 60;
+    width: 32px;
+    height: 48px;
+    background: var(--color-bg-panel);
+    border: 1px solid var(--color-border);
+    border-left: none;
+    border-radius: 0 4px 4px 0;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+
+
+
+.preview-panel {
+    flex: 1;
+    /* width: 100%; Removed, let flex handle it */
+    background-color: var(--color-bg-base);
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+    min-width: 0;
+    /* Prevent flex overflow */
 }
 
 /* Hide content when collapsed */
@@ -174,17 +212,6 @@ a {
 
 .editor-panel.collapsed .collapsed-sidebar-btn {
     display: flex;
-}
-
-.preview-panel {
-    flex: 1;
-    background-color: var(--color-bg-base);
-    display: flex;
-    flex-direction: column;
-    position: relative;
-    overflow: hidden;
-    min-width: 0;
-    /* Prevent flex overflow */
 }
 
 /* Responsive adjustment */
@@ -226,16 +253,26 @@ a {
 /* Mermaid Output Container */
 #mermaid-output {
     /* Ensure it has layout */
-    display: inline-block;
-    min-width: 50px;
-    min-height: 50px;
+    display: flex;
+    /* Changed from inline-block to flex to center svg inside */
+    justify-content: center;
+    align-items: center;
+    min-width: 100%;
+    /* Take full width initially */
+    min-height: 100%;
+    flex-shrink: 0;
+    /* Prevent shrinking */
     /* Force visibility for debug */
     background-color: transparent;
+    transform-origin: center center;
+    /* Ensure zoom works from center */
 }
 
 /* Force SVG to be visible */
 #mermaid-output svg {
     max-width: none !important;
+    width: auto !important;
+    /* Prevent squeezing */
     height: auto !important;
     /* Ensure text is visible in dark theme */
     color: var(--color-text-primary);
@@ -352,6 +389,12 @@ a {
     border-radius: var(--border-radius);
     padding: 0.5rem;
     display: flex;
+    gap: 0.5rem;
+}
+
+.zoom-controls {
+    display: flex;
+    align-items: center;
     gap: 0.5rem;
 }
 
@@ -540,7 +583,8 @@ a {
 
 .col-msg {
     flex: 1;
-    flex: 1;
+    min-width: 150px;
+    /* Ensure at least enough space for text */
 }
 
 .col-actions {
@@ -610,13 +654,16 @@ a {
     cursor: pointer;
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
+    /* Left align */
     color: var(--color-text-primary);
     transition: all 0.2s ease;
     font-size: 0.9rem;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    text-align: left;
+    padding-left: 0.75rem;
 }
 
 .btn-participant-select:hover {

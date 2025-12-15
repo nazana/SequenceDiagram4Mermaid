@@ -16,8 +16,8 @@
         href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap"
         rel="stylesheet">
 
-    <!-- Icons (Phosphor Icons) -->
-    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <!-- Icons (Lucide Icons) -->
+    <script src="https://unpkg.com/lucide@latest"></script>
 
     <!-- Libraries -->
     <script src="https://cdn.jsdelivr.net/npm/mermaid@11.12.2/dist/mermaid.min.js"></script>
@@ -33,20 +33,19 @@
                 <a href="dashboard.html"
                     style="text-decoration: none; color: inherit; display: flex; align-items: center; gap: 0.5rem;"
                     title="Dashboard">
-                    <i class="ph ph-house" style="font-size: 1.2rem;"></i>
+                    <i data-lucide="house" style="width: 1.2rem; height: 1.2rem;"></i>
                 </a>
             </div>
             <div class="toolbar">
                 <button id="btn-toggle-sidebar" class="btn btn-ghost" title="에디터 열기/닫기"><i
-                        class="ph ph-sidebar"></i></button>
+                        data-lucide="panel-left"></i></button>
                 <div class="divider-vertical"></div>
-                <a href="guide.html" class="btn btn-ghost" title="사용 가이드"><i class="ph ph-question"></i></a>
-                <a href="dashboard.html" class="btn btn-ghost" title="대시보드"><i class="ph ph-squares-four"></i></a>
-                <button id="btn-new" class="btn btn-ghost" title="새로 만들기"><i class="ph ph-plus"></i></button>
+                <a href="guide.html" class="btn btn-ghost" title="사용 가이드"><i data-lucide="circle-help"></i></a>
+                <a href="dashboard.html" class="btn btn-ghost" title="대시보드"><i data-lucide="layout-grid"></i></a>
+                <button id="btn-new" class="btn btn-ghost" title="새로 만들기"><i data-lucide="plus"></i></button>
                 <div class="divider-vertical"></div>
-                <button id="btn-save" class="btn btn-primary"><i class="ph ph-floppy-disk"></i> 저장</button>
-                <button id="btn-history" class="btn btn-ghost" title="이력"><i
-                        class="ph ph-clock-counter-clockwise"></i></button>
+                <button id="btn-save" class="btn btn-primary"><i data-lucide="save"></i> 저장</button>
+                <button id="btn-history" class="btn btn-ghost" title="이력"><i data-lucide="history"></i></button>
             </div>
         </header>
 
@@ -60,7 +59,7 @@
                         <button class="tab-item" data-tab="markdown">Markdown</button>
                     </div>
                     <button id="btn-close-sidebar" class="btn-icon" style="margin-right: 0.5rem;" title="패널 접기"><i
-                            class="ph ph-caret-double-left"></i></button>
+                            data-lucide="panel-left-close"></i></button>
                 </div>
 
                 <div class="tab-content" id="tab-grid">
@@ -82,11 +81,11 @@
             <div class="preview-panel">
                 <div class="preview-toolbar">
                     <div class="zoom-controls">
-                        <button id="btn-zoom-out" class="btn-icon"><i class="ph ph-minus"></i></button>
+                        <button id="btn-zoom-in" class="btn-icon" title="줌 인"><i data-lucide="zoom-in"></i></button>
                         <span id="zoom-level">100%</span>
-                        <button id="btn-zoom-in" class="btn-icon"><i class="ph ph-plus"></i></button>
-                        <button id="btn-zoom-reset" class="btn-icon" title="초기화"><i
-                                class="ph ph-arrows-out"></i></button>
+                        <button id="btn-zoom-out" class="btn-icon" title="줌 아웃"><i data-lucide="zoom-out"></i></button>
+                        <button id="btn-zoom-reset" class="btn-icon" title="Zoom to Fit"><i
+                                data-lucide="scan"></i></button>
                     </div>
                 </div>
                 <div id="mermaid-container" class="mermaid-container">
@@ -102,7 +101,7 @@
         <div class="modal">
             <div class="modal-header">
                 <h3>버전 이력</h3>
-                <button id="btn-close-history" class="btn-icon"><i class="ph ph-x"></i></button>
+                <button id="btn-close-history" class="btn-icon"><i data-lucide="x"></i></button>
             </div>
             <div class="modal-body">
                 <ul id="history-list" class="history-list">

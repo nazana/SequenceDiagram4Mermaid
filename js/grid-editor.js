@@ -33,7 +33,7 @@ export function renderGridEditor(container, model) {
     pSection.innerHTML = `
         <div class="section-toggle" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer; margin-bottom: 0.5rem; user-select: none;">
             <h3 style="margin:0;">참여자 (Participants)</h3>
-            <i class="ph ph-caret-down" style="transition: transform 0.2s;"></i>
+            <i data-lucide="chevron-down" style="transition: transform 0.2s; width:20px; height:20px;"></i>
         </div>
         <div class="section-content"></div>
     `;
@@ -56,6 +56,7 @@ export function renderGridEditor(container, model) {
     pWrapper.style.border = '1px solid var(--color-border)';
     pWrapper.style.borderRadius = 'var(--border-radius)';
     pWrapper.style.overflow = 'hidden';
+    pWrapper.style.overflowX = 'auto'; // Allow horizontal scroll
     pWrapper.style.marginBottom = '0.5rem';
 
     const pHeader = document.createElement('div');
@@ -74,7 +75,6 @@ export function renderGridEditor(container, model) {
         <span class="col-handle"></span>
         <span class="col-no grid-col-no" style="font-weight:600">No.</span>
         <span style="width: 90px;">Type</span>
-        <span style="width: 80px;">ID</span>
         <span style="flex: 1;">표시 이름 (Name)</span>
         <span style="width: 28px;"></span> 
     `;
@@ -92,14 +92,13 @@ export function renderGridEditor(container, model) {
         item.dataset.index = index;
 
         item.innerHTML = `
-            <span class="col-handle"><i class="ph ph-dots-six-vertical"></i></span>
+            <span class="col-handle"><i data-lucide="grip-vertical" style="width:16px;height:16px;"></i></span>
             <span class="col-no grid-col-no">${index + 1}</span>
             <button class="btn-participant-select p-type-btn" style="width: 90px; flex: none;">
                 ${p.type.charAt(0).toUpperCase() + p.type.slice(1)}
             </button>
-            <input type="text" class="input-sm p-id" style="width: 80px;" value="${p.logicalId || p.id}" placeholder="ID">
             <input type="text" class="input-sm p-name" style="flex: 1;" value="${p.name || ''}" placeholder="Name (Display)">
-            <button class="btn-icon btn-sm btn-delete-p" data-index="${index}"><i class="ph ph-trash"></i></button>
+            <button class="btn-icon btn-sm btn-delete-p" data-index="${index}"><i data-lucide="trash-2" style="width:16px;height:16px;"></i></button>
         `;
 
         const inputs = item.querySelectorAll('input');
@@ -138,7 +137,7 @@ export function renderGridEditor(container, model) {
     const btnAddP = document.createElement('button');
     btnAddP.className = 'btn btn-ghost btn-sm';
     btnAddP.style.marginTop = '0.5rem';
-    btnAddP.innerHTML = `<i class="ph ph-plus"></i> 참여자 추가`;
+    btnAddP.innerHTML = `<i data-lucide="plus" style="width:16px;height:16px;margin-right:4px;"></i> 참여자 추가`;
     btnAddP.onclick = addParticipant;
 
     pSection.appendChild(btnAddP);
@@ -153,9 +152,9 @@ export function renderGridEditor(container, model) {
             <h3 style="margin:0;">시퀀스 (Sequence)</h3>
             <div style="display: flex; align-items: center; gap: 0.5rem;">
                 <button id="btn-autonumber" class="btn-icon ${model.config?.autonumber ? 'active' : ''}" title="Toggle Autonumber" onclick="event.stopPropagation()" style="color: ${model.config?.autonumber ? 'var(--color-primary)' : 'var(--color-text-secondary)'}">
-                    <i class="ph ph-list-numbers" style="font-size: 1.2rem;"></i>
+                    <i data-lucide="list-ordered" style="width: 1.2rem; height: 1.2rem;"></i>
                 </button>
-                <i class="ph ph-caret-down" style="transition: transform 0.2s;"></i>
+                <i data-lucide="chevron-down" style="transition: transform 0.2s; width:20px; height:20px;"></i>
             </div>
         </div>
         <div class="section-content"></div>
@@ -163,7 +162,7 @@ export function renderGridEditor(container, model) {
 
     const sHeaderToggle = sSection.querySelector('.section-toggle');
     const sContent = sSection.querySelector('.section-content');
-    const sIcon = sHeaderToggle.querySelector('.ph-caret-down');
+    const sIcon = sHeaderToggle.querySelector('i[data-lucide="chevron-down"]');
 
     sContent.style.display = viewState.sequenceExpanded ? 'block' : 'none';
     sIcon.style.transform = viewState.sequenceExpanded ? 'rotate(180deg)' : 'rotate(0deg)';
@@ -190,6 +189,7 @@ export function renderGridEditor(container, model) {
     sWrapper.style.border = '1px solid var(--color-border)';
     sWrapper.style.borderRadius = 'var(--border-radius)';
     sWrapper.style.overflow = 'hidden';
+    sWrapper.style.overflowX = 'auto'; // Allow horizontal scroll
 
     // Sequence Header: Ordered to match Participants
     const sHeader = document.createElement('div');
@@ -279,7 +279,7 @@ export function renderGridEditor(container, model) {
             row.innerHTML = `
                 ${renderActivationLines(index, brackets)}
                 <span class="col-handle" style="position: relative;">
-                    <i class="ph ph-dots-six-vertical"></i>
+                    <i data-lucide="grip-vertical" style="width:16px;height:16px;"></i>
                 </span>
                 <span class="col-no grid-col-no">${index + 1}</span>
 
@@ -287,7 +287,7 @@ export function renderGridEditor(container, model) {
                     <button class="btn-icon btn-sm btn-deactivate ${isDeactivateActive ? 'active' : ''}" 
                         title="${deactivateTitle}"
                         ${!canDeactivate ? 'disabled' : ''}>
-                        <i class="ph ph-minus-circle"></i>
+                        <i data-lucide="circle-minus" style="width:16px;height:16px;"></i>
                     </button>
                     <button class="btn-participant-select seq-source-btn">
                         ${getParticipantLabel(model.participants, item.source)}
@@ -295,7 +295,7 @@ export function renderGridEditor(container, model) {
                 </span>
                 <span class="col-swap">
                     <button class="btn-swap" title="Swap Source/Target">
-                        <i class="ph ph-arrows-left-right"></i>
+                        <i data-lucide="arrow-left-right" style="width:16px;height:16px;"></i>
                     </button>
                 </span>
                 <span class="col-target" style="display: flex; align-items: center; gap: 4px;">
@@ -305,7 +305,7 @@ export function renderGridEditor(container, model) {
                     <button class="btn-icon btn-sm btn-activate ${isActivateActive ? 'active' : ''}" 
                         title="${activateTitle}"
                         ${!canActivate ? 'disabled' : ''}>
-                        <i class="ph ph-plus-circle"></i>
+                        <i data-lucide="circle-plus" style="width:16px;height:16px;"></i>
                     </button>
                 </span>
                 <span class="col-type">
@@ -315,7 +315,7 @@ export function renderGridEditor(container, model) {
                 </span>
                 <span class="col-msg"><input type="text" class="input-sm seq-content" value="${item.content || ''}"></span>
                 <span class="col-actions">
-                    <button class="btn-icon btn-sm btn-delete-s" data-index="${index}"><i class="ph ph-trash"></i></button>
+                    <button class="btn-icon btn-sm btn-delete-s" data-index="${index}"><i data-lucide="trash-2" style="width:16px;height:16px;"></i></button>
                 </span>
             `;
 
@@ -378,14 +378,14 @@ export function renderGridEditor(container, model) {
             row.innerHTML = `
                 ${renderActivationLines(index, brackets)}
                 <span class="col-handle" style="position: relative;">
-                    <i class="ph ph-dots-six-vertical"></i>
+                    <i data-lucide="grip-vertical" style="width:16px;height:16px;"></i>
                 </span>
                 <span class="col-no grid-col-no">${index + 1}</span>
                 <span class="col-msg" style="flex: 1; padding: 0 1rem; color: var(--color-text-secondary); font-style: italic;">
                     [${item.type}] ${item.content || ''}
                 </span>
                 <span class="col-actions">
-                    <button class="btn-icon btn-sm btn-delete-s" data-index="${index}"><i class="ph ph-trash"></i></button>
+                    <button class="btn-icon btn-sm btn-delete-s" data-index="${index}"><i data-lucide="trash-2" style="width:16px;height:16px;"></i></button>
                 </span>
             `;
             row.querySelector('.btn-delete-s').addEventListener('click', () => deleteItem(index));
@@ -422,13 +422,15 @@ export function renderGridEditor(container, model) {
     const btnAddS = document.createElement('button');
     btnAddS.className = 'btn btn-ghost btn-sm';
     btnAddS.style.marginTop = '0.5rem';
-    btnAddS.innerHTML = `<i class="ph ph-plus"></i> 메시지 추가`;
+    btnAddS.innerHTML = `<i data-lucide="plus" style="width:16px;height:16px;margin-right:4px;"></i> 메시지 추가`;
     btnAddS.onclick = addItem;
 
     sContent.appendChild(btnAddS);
     wrapper.appendChild(sSection);
 
     container.appendChild(wrapper);
+
+    if (window.lucide) lucide.createIcons();
 }
 
 // ** Logic for Validation **

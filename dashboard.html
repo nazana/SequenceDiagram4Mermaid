@@ -12,7 +12,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <!-- Icons -->
-    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
 
     <style>
         .dashboard-container {
@@ -44,12 +44,16 @@
             min-width: 250px;
         }
 
-        .search-box i {
+        .search-box svg {
             position: absolute;
             left: 0.8rem;
             top: 50%;
             transform: translateY(-50%);
             color: var(--color-text-secondary);
+            width: 1.2rem;
+            height: 1.2rem;
+            pointer-events: none;
+            /* 클릭 통과 */
         }
 
         .search-box input {
@@ -480,12 +484,12 @@
             <div class="logo">
                 <a href="dashboard.html"
                     style="text-decoration: none; color: inherit; display: flex; align-items: center; gap: 0.5rem;">
-                    <i class="ph ph-house"></i>
+                    <i data-lucide="house"></i>
                     <span>Mermaid Editor</span>
                 </a>
             </div>
             <div style="display: flex; align-items: center; gap: 1rem;">
-                <a href="guide.html" class="btn btn-ghost" title="사용 가이드"><i class="ph ph-question"></i> 가이드</a>
+                <a href="guide.html" class="btn btn-ghost" title="사용 가이드"><i data-lucide="circle-help"></i> 가이드</a>
                 <div class="user-profile" id="user-display"></div>
             </div>
         </header>
@@ -493,22 +497,22 @@
         <!-- Context Menu -->
         <div id="context-menu">
             <div class="context-menu-item" onclick="handleContextAction('rename')">
-                <i class="ph ph-pencil-simple"></i>
+                <i data-lucide="pencil"></i>
                 <span>이름 변경</span>
                 <span class="context-menu-shortcut">Space</span>
             </div>
             <div class="context-menu-item" onclick="handleContextAction('move')">
-                <i class="ph ph-folder-notch-minus"></i>
+                <i data-lucide="folder-input"></i>
                 <span>이동...</span>
             </div>
             <div class="context-menu-item" id="ctx-duplicate" onclick="handleContextAction('duplicate')">
-                <i class="ph ph-copy"></i>
+                <i data-lucide="copy"></i>
                 <span>복제</span>
                 <span class="context-menu-shortcut">D</span>
             </div>
             <div class="context-menu-divider"></div>
             <div class="context-menu-item" onclick="handleContextAction('delete')">
-                <i class="ph ph-trash"></i>
+                <i data-lucide="trash-2"></i>
                 <span>삭제</span>
                 <span class="context-menu-shortcut">Del</span>
             </div>
@@ -520,7 +524,7 @@
                 <div class="modal-header">
                     <span>이동할 위치 선택</span>
                     <button class="btn-ghost" onclick="closeMoveModal()" style="padding: 4px;"><i
-                            class="ph ph-x"></i></button>
+                            data-lucide="x"></i></button>
                 </div>
                 <div class="modal-body" id="move-tree-container">
                     <!-- Tree items injected here -->
@@ -538,9 +542,9 @@
                 <div class="dashboard-header">
                     <h2>나의 다이어그램</h2>
                     <div style="display: flex; gap: 0.5rem;">
-                        <button onclick="handleCreateGroup()" class="btn"><i class="ph ph-folder-plus"></i> 새
+                        <button onclick="handleCreateGroup()" class="btn"><i data-lucide="folder-plus"></i> 새
                             그룹</button>
-                        <a href="index.html" class="btn btn-primary"><i class="ph ph-plus"></i> 새로 만들기</a>
+                        <a href="index.html" class="btn btn-primary"><i data-lucide="plus"></i> 새로 만들기</a>
                     </div>
                 </div>
 
@@ -550,8 +554,14 @@
 
                 <div class="dashboard-controls">
                     <div class="search-box">
-                        <i class="ph ph-magnifying-glass"></i>
+                        <i data-lucide="search"></i>
                         <input type="text" id="search-input" placeholder="다이어그램 검색..." class="input-text">
+                    </div>
+                    <div class="search-options" style="display: flex; align-items: center; gap: 0.5rem;">
+                        <input type="checkbox" id="search-content-check"
+                            style="width: 16px; height: 16px; cursor: pointer;">
+                        <label for="search-content-check"
+                            style="font-size: 0.9rem; cursor: pointer; user-select: none;">내용 포함</label>
                     </div>
                     <div class="sort-box">
                         <select id="sort-select" class="input-select">
@@ -573,7 +583,7 @@
         import {
             getAllDiagrams, getCurrentUser, deleteDiagram,
             getAllGroups, createGroup, deleteGroup, updateGroup, moveDiagram, getGroup,
-            duplicateDiagram, renameDiagram, renameGroup, moveGroup
+            duplicateDiagram, renameDiagram, renameGroup, moveGroup, getAllVersions
         } from './js/storage.js';
         import { showAlert, showConfirm, showPrompt } from './js/ui-utils.js';
 
@@ -613,6 +623,14 @@
                 // Events
                 searchInput.addEventListener('input', filterAndRender);
                 sortSelect.addEventListener('change', filterAndRender);
+                const searchCheck = document.getElementById('search-content-check');
+                if (searchCheck) {
+                    searchCheck.addEventListener('change', filterAndRender);
+                }
+
+                if (window.lucide) {
+                    lucide.createIcons();
+                }
             } catch (error) {
                 console.error('Dashboard init failed:', error);
                 alert('초기화 중 오류가 발생했습니다: ' + error.message);
@@ -620,58 +638,97 @@
         }
 
         function loadData() {
-            allDiagrams = getAllDiagrams();
+            const rawDiagrams = getAllDiagrams();
+            const versions = getAllVersions();
             allGroups = getAllGroups();
+
+            // Populate code property for search
+            allDiagrams = rawDiagrams.map(d => {
+                const latest = versions.find(v => v.id === d.latestVersionId);
+                return {
+                    ...d,
+                    code: latest ? latest.code : ''
+                };
+            });
+        }
+
+        function getPathString(groupId) {
+            if (!groupId) return 'Home';
+            const path = [];
+            let curr = getGroup(groupId);
+            while (curr) {
+                path.unshift(curr.name);
+                if (!curr.parentId) {
+                    path.unshift('Home');
+                    break;
+                }
+                curr = getGroup(curr.parentId);
+            }
+            if (path.length === 0) return 'Unknown';
+            return path.join(' > ');
         }
 
         function filterAndRender() {
-            const keyword = searchInput.value.toLowerCase();
+            const keyword = searchInput.value.toLowerCase().trim();
             const sortMode = sortSelect.value;
+            const searchContent = document.getElementById('search-content-check')
+                ? document.getElementById('search-content-check').checked
+                : false;
 
-            // 1. Filter Items in Current Scope
-            let filteredDiagrams = allDiagrams.filter(d => {
-                const pId = d.groupId || null;
-                return pId === currentGroupId;
-            });
+            let filteredDiagrams = [];
+            let filteredGroups = [];
+            let isSearchMode = false;
 
-            let filteredGroups = allGroups.filter(g => {
-                const pId = g.parentId || null;
-                return pId === currentGroupId;
-            });
-
-            // 2. Apply Search
             if (keyword) {
-                // If searching, search EVERYTHING (ignoring folders?) or search inside?
-                // Usually search flat list is better UX, but keeping folder structure is safer.
-                // Let's search inside current folder for now.
-                // OR: search across all?
-                // If keyword exists, maybe show flat results from everywhere?
-                // Let's stick to current folder search for simplicity first.
-                filteredDiagrams = filteredDiagrams.filter(d => d.title.toLowerCase().includes(keyword));
-                filteredGroups = filteredGroups.filter(g => g.name.toLowerCase().includes(keyword));
+                isSearchMode = true;
+                // --- Global Search ---
+                // 1. Groups (by name)
+                filteredGroups = allGroups.filter(g => g.name.toLowerCase().includes(keyword));
+
+                // 2. Diagrams (by title OR content)
+                filteredDiagrams = allDiagrams.filter(d => {
+                    const titleMatch = d.title.toLowerCase().includes(keyword);
+                    if (titleMatch) return true;
+
+                    if (searchContent && d.code) {
+                        return d.code.toLowerCase().includes(keyword);
+                    }
+                    return false;
+                });
+            } else {
+                // --- Local View ---
+                filteredDiagrams = allDiagrams.filter(d => {
+                    const pId = d.groupId || null;
+                    return pId === currentGroupId;
+                });
+
+                filteredGroups = allGroups.filter(g => {
+                    const pId = g.parentId || null;
+                    return pId === currentGroupId;
+                });
             }
 
             // 3. Sort
             if (sortMode === 'newest') {
                 filteredDiagrams.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
-                // Groups typically sorted by name or creation?
                 filteredGroups.sort((a, b) => b.createdAt - a.createdAt);
             } else {
                 filteredDiagrams.sort((a, b) => a.title.localeCompare(b.title));
                 filteredGroups.sort((a, b) => a.name.localeCompare(b.name));
             }
 
-            renderGrid(filteredGroups, filteredDiagrams);
+            renderGrid(filteredGroups, filteredDiagrams, { showPath: isSearchMode });
         }
 
         function renderGrid(groups, diagrams) {
             if (groups.length === 0 && diagrams.length === 0) {
                 listContainer.innerHTML = `
                     <div class="empty-state">
-                        <i class="ph ph-folder-open" style="font-size: 3rem; margin-bottom: 1rem;"></i>
+                        <i data-lucide="folder-open" style="width: 48px; height: 48px; margin-bottom: 1rem; stroke: var(--color-text-muted);"></i>
                         <p>${currentGroupId ? '이 그룹은 비어있습니다.' : '저장된 다이어그램이 없습니다.'}</p>
                     </div>
                 `;
+                if (window.lucide) lucide.createIcons();
                 return;
             }
 
@@ -684,7 +741,7 @@
                      ondragleave="handleDragLeave(event)"
                      oncontextmenu="handleContextMenu(event, 'group', '${g.id}')">
                     <div class="card-preview">
-                        <i class="ph-fill ph-folder"></i>
+                        <i data-lucide="folder" fill="currentColor"></i>
                     </div>
                     <div class="card-body">
                         <div class="card-title">${g.name}</div>
@@ -693,7 +750,7 @@
                         </div>
                         <div class="card-actions">
                             <button class="btn-trash" onclick="event.stopPropagation(); handleDeleteGroup('${g.id}')" title="삭제">
-                                <i class="ph ph-trash"></i>
+                                <i data-lucide="trash-2"></i>
                             </button>
                         </div>
                     </div>
@@ -701,9 +758,8 @@
             `).join('');
 
             const diagramHtml = diagrams.map(d => {
-                let previewContent = '<i class="ph ph-image"></i>'; // Default
+                let previewContent = '<i data-lucide="image"></i>'; // Default
                 if (d.thumbnail) {
-                    // Check if it is SVG string or Base64 Image
                     if (d.thumbnail.startsWith('<svg')) {
                         previewContent = d.thumbnail;
                     } else {
@@ -726,9 +782,8 @@
                             <span>${new Date(d.updatedAt).toLocaleDateString()} · ${d.updatedBy}</span>
                         </div>
                         <div class="card-actions">
-                            <!-- Stop propagation to prevent navigation -->
                             <button class="btn-trash" onclick="event.stopPropagation(); handleDelete('${d.id}')" title="삭제">
-                                <i class="ph ph-trash"></i>
+                                <i data-lucide="trash-2"></i>
                             </button>
                         </div>
                     </div>
@@ -737,6 +792,7 @@
             }).join('');
 
             listContainer.innerHTML = groupHtml + diagramHtml;
+            if (window.lucide) lucide.createIcons();
         }
 
         function renderBreadcrumb() {
@@ -748,7 +804,6 @@
             breadcrumbContainer.style.display = 'flex';
 
             // Build path
-            // For now only 1 level nesting is common, but recursion supported
             const path = [];
             let curr = getGroup(currentGroupId);
             while (curr) {
@@ -759,13 +814,13 @@
 
             let html = `
                 <div class="breadcrumb-item" onclick="handleEnterGroup(null)">
-                    <i class="ph ph-house"></i> Home
+                    <i data-lucide="house" style="width: 16px; height: 16px;"></i> Home
                 </div>
             `;
 
             path.forEach(g => {
                 html += `
-                    <div class="breadcrumb-separator"><i class="ph ph-caret-right"></i></div>
+                    <div class="breadcrumb-separator"><i data-lucide="chevron-right" style="width: 14px; height: 14px;"></i></div>
                     <div class="breadcrumb-item" onclick="handleEnterGroup('${g.id}')">
                         ${g.name}
                     </div>
@@ -773,6 +828,7 @@
             });
 
             breadcrumbContainer.innerHTML = html;
+            if (window.lucide) lucide.createIcons();
         }
 
         // Global Handlers
@@ -1039,15 +1095,18 @@
                 }
 
                 let toggleHtml = hasChildren ?
-                    `<div class="tree-toggle" onclick="toggleFolder(event, '${id}')"><i class="ph ${isExpanded ? 'ph-caret-down' : 'ph-caret-right'}"></i></div>` :
+                    `<div class="tree-toggle" onclick="toggleFolder(event, '${id}')"><i data-lucide="${isExpanded ? 'chevron-down' : 'chevron-right'}" style="width:16px;height:16px;"></i></div>` :
                     `<div class="tree-toggle hidden"></div>`;
+
+                const iconName = group ? 'folder' : 'house';
+                const iconColor = group ? '' : ''; // Add color/style logic if needed
 
                 html += `
                     <div class="tree-row">
                         ${spacers}
                         ${toggleHtml}
                         <div class="tree-content ${isSelected ? 'selected' : ''}" onclick="selectDestination('${realId === null ? 'null' : realId}')">
-                            <i class="ph-fill ${group ? 'ph-folder' : 'ph-house'}"></i>
+                            <i data-lucide="${iconName}" style="${group ? 'width:16px;height:16px;color:var(--color-primary);' : 'width:16px;height:16px;'}"></i>
                             <span>${name}</span>
                         </div>
                     </div>
@@ -1060,6 +1119,7 @@
 
             renderNode(null, 0);
             treeContainer.innerHTML = html;
+            if (window.lucide) lucide.createIcons();
         };
 
         window.selectDestination = (idStr) => {

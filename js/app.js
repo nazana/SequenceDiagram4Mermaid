@@ -85,8 +85,7 @@ async function init() {
         panzoomInstance = Panzoom(mermaidOutput, {
             maxScale: 10,
             minScale: 0.1,
-            step: 0.1,
-            // contain: 'outside', // Removed to prevent locking issues with dynamic content
+            step: 0.1, // 10% step
             canvas: true, // Treat as canvas (better for SVG)
         });
 
@@ -107,6 +106,11 @@ async function init() {
 
     // Set initial tab UI
     updateTabUI();
+
+    // Initialize Icons
+    if (window.lucide) {
+        lucide.createIcons();
+    }
 }
 
 function updateTabUI() {
@@ -165,15 +169,17 @@ function renderHeaderBreadcrumb(diagram) {
 
     // Build HTML
     // Home > Group > ... > Diagram
+    // Build HTML
+    // Home > Group > ... > Diagram
     let html = `
         <a href="dashboard.html" style="text-decoration: none; color: inherit; display: flex; align-items: center; gap: 0.5rem;" title="Dashboard">
-            <i class="ph ph-house" style="font-size: 1.2rem;"></i>
+            <i data-lucide="house" style="width: 1.2rem; height: 1.2rem;"></i>
         </a>
     `;
 
     path.forEach(g => {
         html += `
-            <span style="opacity: 0.5; font-size: 0.8rem;"><i class="ph ph-caret-right"></i></span>
+            <span style="opacity: 0.5; font-size: 0.8rem; display: flex; align-items: center;"><i data-lucide="chevron-right" style="width: 14px; height: 14px;"></i></span>
             <a href="dashboard.html?groupId=${g.id}" style="text-decoration: none; color: inherit; font-size: 0.95rem;">
                 ${g.name}
             </a>
@@ -181,13 +187,14 @@ function renderHeaderBreadcrumb(diagram) {
     });
 
     html += `
-        <span style="opacity: 0.5; font-size: 0.8rem;"><i class="ph ph-caret-right"></i></span>
+        <span style="opacity: 0.5; font-size: 0.8rem; display: flex; align-items: center;"><i data-lucide="chevron-right" style="width: 14px; height: 14px;"></i></span>
         <span style="font-weight: 600; color: var(--color-primary); font-size: 0.95rem;">
             ${diagram.title}
         </span>
     `;
 
     headerLogoArea.innerHTML = html;
+    if (window.lucide) lucide.createIcons();
 }
 
 // Global functions for Interaction
@@ -343,14 +350,63 @@ function setupEditors() {
 function setupToolbar() {
     if (!panzoomInstance) return;
 
-    mermaidContainer.addEventListener('wheel', panzoomInstance.zoomWithWheel);
-    btnZoomIn.addEventListener('click', () => panzoomInstance.zoomIn());
-    btnZoomOut.addEventListener('click', () => panzoomInstance.zoomOut());
+    // Custom Linear Zoom (Add/Subtract 0.1) to prevent exponential zooming (100 > 111 > 122)
+    function performLinearZoom(isZoomIn) {
+        const currentScale = panzoomInstance.getScale();
+        const step = 0.1;
+        let newScale;
+
+        if (isZoomIn) {
+            // e.g. 1.0 -> 1.1
+            newScale = Math.round((currentScale + step) * 10) / 10;
+        } else {
+            // e.g. 1.0 -> 0.9
+            newScale = Math.round((currentScale - step) * 10) / 10;
+        }
+
+        // Clamp
+        newScale = Math.max(0.1, Math.min(10, newScale));
+
+        // Apply zoom
+        panzoomInstance.zoom(newScale);
+    }
+
+    // Wheel Zoom with Throttling to prevent erratic jumping
+    let wheelThrottleTimer = null;
+    mermaidContainer.addEventListener('wheel', (e) => {
+        e.preventDefault();
+
+        // Simple throttle: run only if no timer active
+        if (wheelThrottleTimer) return;
+
+        wheelThrottleTimer = setTimeout(() => {
+            wheelThrottleTimer = null;
+        }, 20); // 20ms throttling for smoother but controlled feel
+
+        if (e.deltaY < 0) {
+            performLinearZoom(true);
+        } else {
+            performLinearZoom(false);
+        }
+    });
+
+    btnZoomIn.addEventListener('click', () => performLinearZoom(true));
+    btnZoomOut.addEventListener('click', () => performLinearZoom(false));
     btnZoomReset.addEventListener('click', () => panzoomInstance.reset());
 
-    // Setup state tracking
-    mermaidOutput.addEventListener('panzoomstart', () => { window.isPanning = true; });
-    mermaidOutput.addEventListener('panzoomend', () => { setTimeout(() => window.isPanning = false, 50); });
+    // Zoom Level Display
+    const zoomLevelEl = document.getElementById('zoom-level');
+    const updateZoomLevel = () => {
+        if (panzoomInstance && zoomLevelEl) {
+            const scale = panzoomInstance.getScale();
+            zoomLevelEl.textContent = `${Math.round(scale * 100)}%`;
+        }
+    };
+
+    mermaidOutput.addEventListener('panzoomzoom', updateZoomLevel);
+    mermaidOutput.addEventListener('panzoomreset', updateZoomLevel);
+    // Initial update
+    updateZoomLevel();
 }
 
 function setupDetailPanel() {
@@ -373,67 +429,41 @@ function setupDetailPanel() {
     const collapsedBtn = document.createElement('div');
     collapsedBtn.className = 'collapsed-sidebar-btn';
     collapsedBtn.title = '에디터 열기';
-    collapsedBtn.innerHTML = '<i class="ph ph-caret-double-right"></i>';
+    collapsedBtn.innerHTML = '<i data-lucide="chevrons-right"></i>';
     collapsedBtn.addEventListener('click', toggleSidebar);
     editorPanel.appendChild(collapsedBtn);
+    if (window.lucide) lucide.createIcons();
 
     function toggleSidebar() {
         isCollapsed = !isCollapsed;
 
         if (isCollapsed) {
-            lastWidth = editorPanel.style.width || '50%';
             editorPanel.classList.add('collapsed');
-            editorPanel.style.width = ''; // Let CSS take over
-            editorPanel.style.minWidth = ''; // Let CSS take over
-            editorPanel.style.flex = 'none'; // Ensure CSS width works
-            resizer.style.display = 'none';
+
+            // Show floating open button
+            if (!document.querySelector('.collapsed-sidebar-trans-btn')) {
+                const floatBtn = document.createElement('div');
+                floatBtn.className = 'collapsed-sidebar-trans-btn';
+                floatBtn.title = '에디터 열기';
+                floatBtn.innerHTML = '<i data-lucide="panel-left-open"></i>';
+                floatBtn.addEventListener('click', toggleSidebar);
+                document.querySelector('.app-main').appendChild(floatBtn);
+                if (window.lucide) lucide.createIcons();
+            } else {
+                document.querySelector('.collapsed-sidebar-trans-btn').style.display = 'flex';
+            }
         } else {
             editorPanel.classList.remove('collapsed');
-            editorPanel.style.flex = 'none';
-            editorPanel.style.width = lastWidth;
-            editorPanel.style.minWidth = '300px';
-            resizer.style.display = 'flex';
+            const floatBtn = document.querySelector('.collapsed-sidebar-trans-btn');
+            if (floatBtn) floatBtn.style.display = 'none';
         }
     }
 
     btnToggleSidebar.addEventListener('click', toggleSidebar);
     btnCloseSidebar.addEventListener('click', toggleSidebar);
 
-    // Initial resize check logic removed or simplified
-    window.addEventListener('resize', () => {
-        isVertical = window.innerWidth <= 768;
-    });
-
-    // Make sure resizing sets flex to none to respect width
-    resizer.addEventListener('mousedown', (e) => {
-        isResizing = true;
-        editorPanel.style.flex = 'none';
-        document.body.style.cursor = isVertical ? 'row-resize' : 'col-resize';
-        e.preventDefault();
-    });
-
-    document.addEventListener('mousemove', (e) => {
-        if (!isResizing) return;
-
-        if (isVertical) {
-            // Adjust Height
-            const newHeight = e.clientY - 60; // Subtract header height approx
-            if (newHeight > 100 && newHeight < document.body.clientHeight - 100) {
-                editorPanel.style.height = `${newHeight}px`;
-            }
-        } else {
-            // Adjust Width
-            const newWidth = e.clientX;
-            if (newWidth > 200 && newWidth < document.body.clientWidth - 200) {
-                editorPanel.style.width = `${newWidth}px`;
-            }
-        }
-    });
-
-    document.addEventListener('mouseup', () => {
-        isResizing = false;
-        document.body.style.cursor = '';
-    });
+    // Hide Resizer as width is fixed
+    if (resizer) resizer.style.display = 'none';
 }
 
 function setupDataActions() {

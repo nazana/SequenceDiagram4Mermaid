@@ -186,7 +186,7 @@ export function renameGroup(id, newName) {
 }
 
 // --- Version Management ---
-function getAllVersions() {
+export function getAllVersions() {
     const json = localStorage.getItem(KEYS.VERSIONS);
     return json ? JSON.parse(json) : [];
 }
