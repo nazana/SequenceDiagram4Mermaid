@@ -84,32 +84,44 @@
             outline: none;
         }
 
+        /* Shared Card Styles */
         .diagram-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
             gap: 1.5rem;
+            align-items: start;
+            /* Align items at start to handle varying heights if any */
         }
 
-        .diagram-card {
+        .diagram-card,
+        .folder-card {
             background-color: var(--color-bg-panel);
             border: 1px solid var(--color-border);
             border-radius: var(--border-radius);
             overflow: hidden;
-            transition: transform 0.2s, border-color 0.2s;
+            transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
             cursor: pointer;
             display: flex;
             flex-direction: column;
             text-decoration: none;
             color: inherit;
+            position: relative;
+            /* For absolute positioning of actions */
+            height: 100%;
+            /* Try to fill grid cell */
         }
 
-        .diagram-card:hover {
+        .diagram-card:hover,
+        .folder-card:hover {
             transform: translateY(-2px);
             border-color: var(--color-primary);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         }
 
+        /* Preview Area (Thumbnail / Icon) */
         .card-preview {
-            height: 140px;
+            height: 160px;
+            /* Reduced from 200px for better ratio */
             background-color: var(--color-bg-base);
             border-bottom: 1px solid var(--color-border);
             display: flex;
@@ -119,33 +131,74 @@
             font-size: 3rem;
             position: relative;
             overflow: hidden;
+            padding: 1rem;
         }
 
-        .card-preview svg {
+        .card-preview svg,
+        .card-preview img {
             width: 100%;
             height: 100%;
-            object-fit: cover;
-            opacity: 0.5;
+            object-fit: contain;
+            opacity: 0.9;
+            transition: opacity 0.2s;
         }
 
+        /* Folder Specifics overriding card-preview */
+        .folder-card .card-preview {
+            background-color: rgba(var(--color-primary-rgb), 0.05);
+            /* Slight tint for folders */
+            color: var(--color-primary);
+            font-size: 4rem;
+            /* Larger icon */
+        }
+
+        /* Card Body (Info) */
         .card-body {
-            padding: 1rem;
+            padding: 0.8rem 1rem;
+            /* Reduced padding */
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
         }
 
         .card-title {
             font-weight: 600;
-            margin-bottom: 0.5rem;
+            font-size: 1rem;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+            margin: 0;
+            color: var(--color-text-primary);
         }
 
         .card-meta {
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             color: var(--color-text-secondary);
             display: flex;
             flex-direction: column;
-            gap: 0.2rem;
+            gap: 0.1rem;
+        }
+
+        .card-actions {
+            margin-top: 0.5rem;
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        /* Delete Button - Make it subtle or icon only */
+        .btn-trash {
+            background: transparent;
+            border: none;
+            color: var(--color-text-muted);
+            padding: 4px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+
+        .btn-trash:hover {
+            color: var(--color-error);
+            background-color: rgba(255, 0, 0, 0.1);
         }
 
         .empty-state {
@@ -159,7 +212,8 @@
         }
 
         /* Folder Styles */
-        .folder-card {
+        /* These styles are now largely covered by .diagram-card, .folder-card and .folder-card .card-preview */
+        /* .folder-card {
             background-color: var(--color-bg-panel);
             border: 1px solid var(--color-border);
             border-radius: var(--border-radius);
@@ -199,7 +253,7 @@
         .folder-count {
             font-size: 0.8rem;
             color: var(--color-text-secondary);
-        }
+        } */
 
         .breadcrumb {
             display: flex;
@@ -228,6 +282,59 @@
         .drop-target {
             border: 2px dashed var(--color-primary) !important;
             background-color: rgba(var(--color-primary-rgb), 0.1) !important;
+            transform: scale(1.02);
+            transform: scale(1.02);
+        }
+
+        /* Context Menu */
+        #context-menu {
+            display: none;
+            position: absolute;
+            z-index: 1000;
+            background-color: var(--color-bg-panel);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            min-width: 160px;
+            padding: 0.5rem 0;
+        }
+
+        .context-menu-item {
+            padding: 0.6rem 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            cursor: pointer;
+            font-size: 0.9rem;
+            color: var(--color-text-primary);
+            transition: background-color 0.1s;
+        }
+
+        .context-menu-item:hover {
+            background-color: var(--color-bg-base);
+        }
+
+        .context-menu-item i {
+            font-size: 1.1rem;
+            color: var(--color-text-secondary);
+        }
+
+        .context-menu-shortcut {
+            margin-left: auto;
+            font-size: 0.8rem;
+            color: var(--color-text-muted);
+            opacity: 0.7;
+        }
+
+        .context-menu-divider {
+            height: 1px;
+            background-color: var(--color-border);
+            margin: 0.4rem 0;
+        }
+
+        .selected-card {
+            border-color: var(--color-primary) !important;
+            box-shadow: 0 0 0 2px rgba(var(--color-primary-rgb), 0.3);
         }
     </style>
 </head>
@@ -237,14 +344,41 @@
         <!-- Header -->
         <header class="app-header">
             <div class="logo">
-                <i class="ph ph-waves"></i>
-                <span>Mermaid Editor</span>
+                <a href="dashboard.html"
+                    style="text-decoration: none; color: inherit; display: flex; align-items: center; gap: 0.5rem;">
+                    <i class="ph ph-house"></i>
+                    <span>Mermaid Editor</span>
+                </a>
             </div>
             <div style="display: flex; align-items: center; gap: 1rem;">
                 <a href="guide.html" class="btn btn-ghost" title="사용 가이드"><i class="ph ph-question"></i> 가이드</a>
                 <div class="user-profile" id="user-display"></div>
             </div>
         </header>
+
+        <!-- Context Menu -->
+        <div id="context-menu">
+            <div class="context-menu-item" onclick="handleContextAction('rename')">
+                <i class="ph ph-pencil-simple"></i>
+                <span>이름 변경</span>
+                <span class="context-menu-shortcut">Space</span>
+            </div>
+            <div class="context-menu-item" onclick="handleContextAction('move')">
+                <i class="ph ph-folder-notch-minus"></i>
+                <span>이동...</span>
+            </div>
+            <div class="context-menu-item" id="ctx-duplicate" onclick="handleContextAction('duplicate')">
+                <i class="ph ph-copy"></i>
+                <span>복제</span>
+                <span class="context-menu-shortcut">D</span>
+            </div>
+            <div class="context-menu-divider"></div>
+            <div class="context-menu-item" onclick="handleContextAction('delete')">
+                <i class="ph ph-trash"></i>
+                <span>삭제</span>
+                <span class="context-menu-shortcut">Del</span>
+            </div>
+        </div>
 
         <!-- Main Content -->
         <main class="app-main" style="overflow-y: auto;">
@@ -286,7 +420,8 @@
     <script type="module">
         import {
             getAllDiagrams, getCurrentUser, deleteDiagram,
-            getAllGroups, createGroup, deleteGroup, updateGroup, moveDiagram, getGroup
+            getAllGroups, createGroup, deleteGroup, updateGroup, moveDiagram, getGroup,
+            duplicateDiagram, renameDiagram, renameGroup
         } from './js/storage.js';
         import { showAlert, showConfirm, showPrompt } from './js/ui-utils.js';
 
@@ -306,8 +441,16 @@
                 userDisplay.textContent = user.name;
 
                 loadData();
-                renderBreadcrumb();
-                filterAndRender();
+
+                // Check URL Param for group
+                const urlParams = new URLSearchParams(window.location.search);
+                const groupId = urlParams.get('groupId');
+                if (groupId) {
+                    handleEnterGroup(groupId);
+                } else {
+                    renderBreadcrumb();
+                    filterAndRender();
+                }
 
                 // Events
                 searchInput.addEventListener('input', filterAndRender);
@@ -379,43 +522,61 @@
                      onclick="handleEnterGroup('${g.id}')"
                      ondrop="handleDropOnGroup(event, '${g.id}')"
                      ondragover="allowDrop(event)"
-                     ondragleave="handleDragLeave(event)">
-                    <div class="folder-icon">
+                     ondragenter="handleDragEnter(event)"
+                     ondragleave="handleDragLeave(event)"
+                     oncontextmenu="handleContextMenu(event, 'group', '${g.id}')">
+                    <div class="card-preview">
                         <i class="ph-fill ph-folder"></i>
                     </div>
-                    <div class="folder-info">
-                        <div class="folder-name">${g.name}</div>
-                        <div class="folder-count"></div>
-                    </div>
-                     <button class="btn btn-sm btn-ghost" onclick="event.stopPropagation(); handleDeleteGroup('${g.id}')" title="삭제">
-                        <i class="ph ph-trash"></i>
-                    </button>
-                </div>
-            `).join('');
-
-            const diagramHtml = diagrams.map(d => `
-                <div class="diagram-card" 
-                     draggable="true" 
-                     ondragstart="handleDragStart(event, '${d.id}')"
-                     onclick="location.href='index.html?id=${d.id}'">
-                    <div class="card-preview">
-                        <i class="ph ph-image"></i>
-                    </div>
                     <div class="card-body">
-                        <div class="card-title">${d.title}</div>
+                        <div class="card-title">${g.name}</div>
                         <div class="card-meta">
-                            <span>수정: ${new Date(d.updatedAt).toLocaleDateString()}</span>
-                            <span>작성자: ${d.updatedBy}</span>
+                            <span>폴더</span>
                         </div>
-                        <div class="card-actions" style="margin-top: 1rem; display: flex; gap: 0.5rem;">
-                            <!-- Stop propagation to prevent navigation -->
-                            <button class="btn btn-sm" onclick="event.stopPropagation(); handleDelete('${d.id}')">
-                                <i class="ph ph-trash"></i> 삭제
+                        <div class="card-actions">
+                            <button class="btn-trash" onclick="event.stopPropagation(); handleDeleteGroup('${g.id}')" title="삭제">
+                                <i class="ph ph-trash"></i>
                             </button>
                         </div>
                     </div>
                 </div>
             `).join('');
+
+            const diagramHtml = diagrams.map(d => {
+                let previewContent = '<i class="ph ph-image"></i>'; // Default
+                if (d.thumbnail) {
+                    // Check if it is SVG string or Base64 Image
+                    if (d.thumbnail.startsWith('<svg')) {
+                        previewContent = d.thumbnail;
+                    } else {
+                        previewContent = `<img src="${d.thumbnail}" alt="${d.title}">`;
+                    }
+                }
+
+                return `
+                <div class="diagram-card" 
+                     draggable="true" 
+                     ondragstart="handleDragStart(event, '${d.id}')"
+                     onclick="handleCardClick(event, '${d.id}')"
+                     oncontextmenu="handleContextMenu(event, 'diagram', '${d.id}')">
+                    <div class="card-preview">
+                        ${previewContent}
+                    </div>
+                    <div class="card-body">
+                        <div class="card-title">${d.title}</div>
+                        <div class="card-meta">
+                            <span>${new Date(d.updatedAt).toLocaleDateString()} · ${d.updatedBy}</span>
+                        </div>
+                        <div class="card-actions">
+                            <!-- Stop propagation to prevent navigation -->
+                            <button class="btn-trash" onclick="event.stopPropagation(); handleDelete('${d.id}')" title="삭제">
+                                <i class="ph ph-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            }).join('');
 
             listContainer.innerHTML = groupHtml + diagramHtml;
         }
@@ -453,17 +614,6 @@
                 `;
             });
 
-            // Add "Drop to move up" zone on parent
-            html += `
-                <div class="breadcrumb-separator" style="margin-left:auto;"></div>
-                <div class="breadcrumb-item" 
-                     ondrop="handleDropOnParent(event)" 
-                     ondragover="allowDrop(event)"
-                     style="font-size:0.8rem; color:var(--color-primary); border:1px dashed var(--color-primary); padding:2px 8px; border-radius:4px;">
-                     <i class="ph ph-arrow-u-up-left"></i> 상위로 이동
-                </div>
-            `;
-
             breadcrumbContainer.innerHTML = html;
         }
 
@@ -479,12 +629,20 @@
 
         window.handleEnterGroup = (id) => {
             currentGroupId = id;
+
+            // Update "New Diagram" button link
+            const newBtn = document.querySelector('a[href^="index.html"]');
+            if (newBtn) {
+                newBtn.href = id ? `index.html?groupId=${id}` : 'index.html';
+            }
+
             renderBreadcrumb();
             filterAndRender();
         };
 
         window.handleDeleteGroup = async (id) => {
-            if (confirm('그룹을 삭제하시겠습니까? 내부의 다이어그램은 최상위(Home)로 이동됩니다.')) {
+            const confirmed = await showConfirm('그룹을 삭제하시겠습니까? 내부의 다이어그램은 최상위(Home)로 이동됩니다.');
+            if (confirmed) {
                 deleteGroup(id);
                 loadData();
                 filterAndRender();
@@ -492,7 +650,8 @@
         };
 
         window.handleDelete = async (id) => {
-            if (confirm('정말 삭제하시겠습니까? 복구할 수 없습니다.')) {
+            const confirmed = await showConfirm('정말 삭제하시겠습니까? 복구할 수 없습니다.');
+            if (confirmed) {
                 deleteDiagram(id);
                 loadData();
                 filterAndRender();
@@ -524,20 +683,141 @@
             }
         };
 
+        window.handleDragEnter = (e) => {
+            e.preventDefault();
+            e.currentTarget.classList.add('drop-target');
+        };
+
         // Add visual feedback class
         window.oldDragOver = window.ondragover;
 
-        // Setup specialized handlers in renderGrid (ondragover="allowDrop(event); this.classList.add('drop-target')")
-        // But inline js 'this' works.
-        // Let's update `renderGrid` HTML to add class toggle.
-        // Actually the `folder-card` styles handle Hover. Drop target needs JS.
-        // Added `ondragover="allowDrop(event); this.classList.add('drop-target')"` in renderGrid not easy without helper.
-        // I used `allowDrop` and `handleDragLeave`.
-        // I need to modify `allowDrop` to add class? No, `ondragenter`.
-        // Let's just rely on standard hover for now, or add simple invalidation.
+        // Context Menu Logic
+        const contextMenu = document.getElementById('context-menu');
+        let contextTargetId = null;
+        let contextTargetType = null; // 'group' | 'diagram'
+        let isMenuOpen = false;
+
+        window.handleCardClick = (e, id) => {
+            // If menu was open, we are closing it. Do NOT navigate.
+            // Note: The global click handler runs AFTER this bubbling phase usually? 
+            // Actually, if we click on the card, this fires.
+            // If the menu IS open, we want to close it and prevent nav.
+            if (isMenuOpen) {
+                // It will be closed by global click handler or we close it here.
+                // Let's rely on global handler but blocking nav is key.
+                // Wait, if I right click, isMenuOpen becomes true.
+                e.preventDefault();
+                e.stopPropagation();
+                // We should close menu here to be responsive?
+                // Actually global click listener handles closing. We just stop nav.
+                return;
+            }
+            location.href = `index.html?id=${id}`;
+        };
+
+        window.handleContextMenu = (e, type, id) => {
+            e.preventDefault();
+            e.stopPropagation();
+
+            contextTargetId = id;
+            contextTargetType = type;
+
+            // Highlight Logic
+            document.querySelectorAll('.diagram-card, .folder-card').forEach(el => el.classList.remove('selected-card'));
+            e.currentTarget.classList.add('selected-card');
+
+            // Hide Duplicate if group
+            const dupItem = document.getElementById('ctx-duplicate');
+            if (dupItem) {
+                dupItem.style.display = (type === 'group') ? 'none' : 'flex';
+            }
+
+            // Position Menu
+            contextMenu.style.display = 'block';
+            contextMenu.style.left = `${e.pageX}px`;
+            contextMenu.style.top = `${e.pageY}px`;
+
+            // Set flag with a slight timeout to avoid immediate click conflict if any
+            setTimeout(() => { isMenuOpen = true; }, 10);
+        };
+
+        window.handleContextAction = async (action) => {
+            contextMenu.style.display = 'none';
+            isMenuOpen = false;
+
+            if (!contextTargetId) return;
+
+            if (action === 'rename') {
+                const isGroup = contextTargetType === 'group';
+                const oldName = isGroup
+                    ? allGroups.find(g => g.id === contextTargetId).name
+                    : allDiagrams.find(d => d.id === contextTargetId).title;
+
+                const newName = await showPrompt('새 이름을 입력하세요:', oldName, '이름 변경');
+                if (newName && newName !== oldName) {
+                    if (isGroup) {
+                        // Using updateGroup directly? Need rename wrapper? 
+                        // Wait, storage.js has renameGroup and renameDiagram. Use those via module import if exposed or add helper.
+                        // IMPORTANT: We need to import renameGroup/Diagram at top.
+                        // For now, let's assume we update imports below.
+                        // We imported renameGroup. Let's use it for consistency if we added it, but updateGroup works too.
+                        // Actually renameGroup logic in storage.js is just updateGroup wrapper probably probably?
+                        // Let's use renameGroup if imported or updateGroup. We imported renameGroup.
+                        renameGroup(contextTargetId, newName);
+                    } else {
+                        renameDiagram(contextTargetId, newName);
+                    }
+
+                    loadData();
+                    filterAndRender();
+                }
+            } else if (action === 'duplicate') {
+                if (contextTargetType === 'diagram') {
+                    const author = getCurrentUser().name;
+                    duplicateDiagram(contextTargetId, author);
+                    loadData();
+                    filterAndRender();
+                } else {
+                    alert('그룹 복제는 지원하지 않습니다.');
+                }
+            } else if (action === 'delete') {
+                if (contextTargetType === 'group') handleDeleteGroup(contextTargetId);
+                else handleDelete(contextTargetId);
+            } else if (action === 'move') {
+                // Move Implementation (Next Step)
+                alert('이동 기능은 준비 중입니다.');
+            }
+        };
+
+        // Close menu on click elsewhere
+        document.addEventListener('click', (e) => {
+            if (isMenuOpen) {
+                contextMenu.style.display = 'none';
+                isMenuOpen = false;
+                // Optional: Remove highlight
+                document.querySelectorAll('.selected-card').forEach(el => el.classList.remove('selected-card'));
+            }
+        });
+
+        // Shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (isMenuOpen) { // Use flag check
+                if (e.code === 'Space') {
+                    e.preventDefault(); // Prevent scroll
+                    handleContextAction('rename');
+                } else if (e.code === 'KeyD') {
+                    e.preventDefault();
+                    handleContextAction('duplicate');
+                } else if (e.code === 'Delete') {
+                    e.preventDefault();
+                    handleContextAction('delete');
+                }
+            }
+        });
 
         window.handleDropOnParent = (e) => {
             e.preventDefault();
+            e.currentTarget.classList.remove('drop-target');
             const diagramId = e.dataTransfer.getData('text/plain');
             if (!diagramId) return;
 

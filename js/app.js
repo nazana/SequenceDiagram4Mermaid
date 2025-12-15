@@ -1,6 +1,6 @@
 import { renderMermaid, parseMermaidCode, generateMermaidCode, sanitizeMermaidCode } from './mermaid-utils.js';
 import { initGridEditor, renderGridEditor } from './grid-editor.js';
-import { getCurrentUser, saveUser, getDiagram, createDiagram, updateDiagram, getDiagramVersions, getVersion } from './storage.js';
+import { getCurrentUser, saveUser, getDiagram, createDiagram, updateDiagram, getDiagramVersions, getVersion, getGroup } from './storage.js';
 import { showAlert, showPrompt, showConfirm } from './ui-utils.js';
 import { initSmartGuide } from './editor-guide.js';
 
@@ -48,12 +48,21 @@ async function init() {
     // Check URL Param
     const urlParams = new URLSearchParams(window.location.search);
     const id = urlParams.get('id');
+    const groupId = urlParams.get('groupId');
+    if (groupId) {
+        window.currentGroupId = groupId;
+    }
 
     if (id) {
         const diagram = getDiagram(id);
         if (diagram) {
             console.log('Loaded diagram:', diagram);
+            console.log('Loaded diagram:', diagram);
             currentDiagramId = id;
+
+            // Render Breadcrumb in Header
+            renderHeaderBreadcrumb(diagram);
+
             // Get latest version
             const latestVersion = getVersion(diagram.latestVersionId);
             // Sanitize content to fix potential data corruption (e.g. invalid arrow dashes)
@@ -137,6 +146,48 @@ async function syncFromMarkdown() {
     setupCanvasInteractions();
     const model = parseMermaidCode(code);
     renderGridEditor(gridContainer, model);
+}
+
+// Breadcrumb Logic
+function renderHeaderBreadcrumb(diagram) {
+    const headerLogoArea = document.getElementById('header-logo-area');
+    if (!headerLogoArea) return;
+
+    const path = [];
+    if (diagram.groupId) {
+        let curr = getGroup(diagram.groupId);
+        while (curr) {
+            path.unshift(curr);
+            if (!curr.parentId) break;
+            curr = getGroup(curr.parentId);
+        }
+    }
+
+    // Build HTML
+    // Home > Group > ... > Diagram
+    let html = `
+        <a href="dashboard.html" style="text-decoration: none; color: inherit; display: flex; align-items: center; gap: 0.5rem;" title="Dashboard">
+            <i class="ph ph-house" style="font-size: 1.2rem;"></i>
+        </a>
+    `;
+
+    path.forEach(g => {
+        html += `
+            <span style="opacity: 0.5; font-size: 0.8rem;"><i class="ph ph-caret-right"></i></span>
+            <a href="dashboard.html?groupId=${g.id}" style="text-decoration: none; color: inherit; font-size: 0.95rem;">
+                ${g.name}
+            </a>
+        `;
+    });
+
+    html += `
+        <span style="opacity: 0.5; font-size: 0.8rem;"><i class="ph ph-caret-right"></i></span>
+        <span style="font-weight: 600; color: var(--color-primary); font-size: 0.95rem;">
+            ${diagram.title}
+        </span>
+    `;
+
+    headerLogoArea.innerHTML = html;
 }
 
 // Global functions for Interaction
@@ -413,18 +464,37 @@ function setupDataActions() {
         }
 
         try {
+            // Capture Thumbnail (SVG String)
+            let thumbnail = null;
+            try {
+                const svgEl = mermaidOutput.querySelector('svg');
+                if (svgEl) {
+                    const clone = svgEl.cloneNode(true);
+                    clone.removeAttribute('height'); // Remove fixed height for better scaling
+                    clone.removeAttribute('width');
+                    clone.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+                    clone.style.maxWidth = '100%';
+                    thumbnail = clone.outerHTML;
+                }
+            } catch (err) {
+                console.warn('Thumbnail capture failed:', err);
+            }
+
             if (currentDiagramId) {
                 // Update
                 const note = await showPrompt('변경 사항에 대한 메모를 남겨주세요:', 'Update', '버전 저장');
                 if (note === null) return; // Cancelled
-                updateDiagram(currentDiagramId, code, user.name, note);
+                updateDiagram(currentDiagramId, code, user.name, note, thumbnail);
                 await showAlert('저장되었습니다!');
             } else {
                 // Create
                 const title = await showPrompt('다이어그램 제목을 입력해주세요:', 'My Diagram', '새 다이어그램');
                 if (!title) return; // Cancelled
-                const diagram = createDiagram(title, code, user.name);
+                const diagram = createDiagram(title, code, user.name, window.currentGroupId || null, thumbnail);
                 currentDiagramId = diagram.id;
+
+                // Update Breadcrumb
+                renderHeaderBreadcrumb(diagram);
 
                 // Update URL without reload
                 const newUrl = `${window.location.pathname}?id=${currentDiagramId}`;

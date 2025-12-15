@@ -37,7 +37,7 @@ export function getDiagram(id) {
     return diagrams.find(d => d.id === id);
 }
 
-export function createDiagram(title, initialCode, authorName, groupId = null) {
+export function createDiagram(title, initialCode, authorName, groupId = null, thumbnail = null) {
     const diagrams = getAllDiagrams();
     const versions = getAllVersions(); // Helper
 
@@ -66,7 +66,8 @@ export function createDiagram(title, initialCode, authorName, groupId = null) {
         updatedBy: authorName,
         updatedAt: Date.now(),
         latestVersionId: versionId,
-        groupId: groupId // New field
+        groupId: groupId, // New field
+        thumbnail: thumbnail // SVG string or DataURL
     };
     diagrams.unshift(diagram); // Prepend
     localStorage.setItem(KEYS.DIAGRAMS, JSON.stringify(diagrams));
@@ -74,7 +75,7 @@ export function createDiagram(title, initialCode, authorName, groupId = null) {
     return diagram;
 }
 
-export function updateDiagram(diagramId, code, authorName, note = 'Update') {
+export function updateDiagram(diagramId, code, authorName, note = 'Update', thumbnail = null) {
     const diagrams = getAllDiagrams();
     const index = diagrams.findIndex(d => d.id === diagramId);
     if (index === -1) throw new Error('Diagram not found');
@@ -100,6 +101,9 @@ export function updateDiagram(diagramId, code, authorName, note = 'Update') {
     diagrams[index].updatedAt = Date.now();
     diagrams[index].updatedBy = authorName;
     diagrams[index].latestVersionId = versionId;
+    if (thumbnail) {
+        diagrams[index].thumbnail = thumbnail;
+    }
     localStorage.setItem(KEYS.DIAGRAMS, JSON.stringify(diagrams));
 
     return diagrams[index];
@@ -115,6 +119,70 @@ export function deleteDiagram(diagramId) {
     let versions = getAllVersions();
     versions = versions.filter(v => v.diagramId !== diagramId);
     localStorage.setItem(KEYS.VERSIONS, JSON.stringify(versions));
+}
+
+// --- Duplicate ---
+export function duplicateDiagram(originalId, authorName) {
+    const diagrams = getAllDiagrams();
+    const original = diagrams.find(d => d.id === originalId);
+    if (!original) throw new Error('Original diagram not found');
+
+    const versions = getAllVersions();
+    const latestVersion = getVersion(original.latestVersionId);
+
+    // IDs
+    const diagramId = `d_${Date.now()}`;
+    const versionId = `v_${Date.now()}`;
+
+    // Create Initial Version for Copy (Based on latest)
+    const version = {
+        id: versionId,
+        diagramId,
+        code: latestVersion ? latestVersion.code : '',
+        authorName,
+        timestamp: Date.now(),
+        note: 'Duplicated from ' + original.title
+    };
+    versions.push(version);
+    localStorage.setItem(KEYS.VERSIONS, JSON.stringify(versions));
+
+    // Create Diagram Metadata
+    const newDiagram = {
+        ...original,
+        id: diagramId,
+        title: original.title + ' (Copy)',
+        latestVersionId: versionId,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        createdBy: authorName,
+        updatedBy: authorName
+    };
+    diagrams.unshift(newDiagram);
+    localStorage.setItem(KEYS.DIAGRAMS, JSON.stringify(diagrams));
+
+    return newDiagram;
+}
+
+// --- Rename ---
+export function renameDiagram(id, newTitle) {
+    const diagrams = getAllDiagrams();
+    const diagram = diagrams.find(d => d.id === id);
+    if (!diagram) throw new Error('Diagram not found');
+
+    diagram.title = newTitle;
+    diagram.updatedAt = Date.now();
+    localStorage.setItem(KEYS.DIAGRAMS, JSON.stringify(diagrams));
+    return diagram;
+}
+
+export function renameGroup(id, newName) {
+    const groups = getAllGroups();
+    const group = groups.find(g => g.id === id);
+    if (!group) throw new Error('Group not found');
+
+    group.name = newName;
+    localStorage.setItem(KEYS.GROUPS, JSON.stringify(groups));
+    return group;
 }
 
 // --- Version Management ---
