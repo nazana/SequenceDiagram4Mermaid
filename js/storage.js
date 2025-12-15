@@ -279,3 +279,24 @@ export function moveDiagram(diagramId, targetGroupId) {
     localStorage.setItem(KEYS.DIAGRAMS, JSON.stringify(diagrams));
     return diagrams[index];
 }
+
+export function moveGroup(groupId, targetGroupId) {
+    const groups = getAllGroups();
+    const index = groups.findIndex(g => g.id === groupId);
+    if (index === -1) throw new Error('Group not found');
+
+    // Prevent moving to self
+    if (groupId === targetGroupId) return groups[index];
+
+    // Circular check: prevent moving to a child
+    let curr = getGroup(targetGroupId);
+    while (curr) {
+        if (curr.id === groupId) throw new Error('Cannot move group into its own child');
+        curr = getGroup(curr.parentId);
+    }
+
+    groups[index].parentId = targetGroupId;
+    groups[index].updatedAt = Date.now();
+    localStorage.setItem(KEYS.GROUPS, JSON.stringify(groups));
+    return groups[index];
+}

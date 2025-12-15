@@ -336,6 +336,79 @@
             border-color: var(--color-primary) !important;
             box-shadow: 0 0 0 2px rgba(var(--color-primary-rgb), 0.3);
         }
+
+        /* Move Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background-color: var(--color-bg-panel);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            width: 400px;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+
+        .modal-header {
+            padding: 1rem;
+            border-bottom: 1px solid var(--color-border);
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-body {
+            padding: 1rem;
+            overflow-y: auto;
+            max-height: 300px;
+        }
+
+        .folder-tree-item {
+            padding: 0.5rem;
+            cursor: pointer;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--color-text-primary);
+        }
+
+        .folder-tree-item:hover {
+            background-color: var(--color-bg-base);
+        }
+
+        .folder-tree-item.selected {
+            background-color: rgba(var(--color-primary-rgb), 0.1);
+            color: var(--color-primary);
+            font-weight: 500;
+        }
+
+        .folder-tree-indent {
+            width: 1rem;
+            display: inline-block;
+        }
+
+        .modal-footer {
+            padding: 1rem;
+            border-top: 1px solid var(--color-border);
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.5rem;
+        }
     </style>
 </head>
 
@@ -380,6 +453,24 @@
             </div>
         </div>
 
+        <!-- Move Modal -->
+        <div id="move-modal" class="modal-overlay">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <span>이동할 위치 선택</span>
+                    <button class="btn-ghost" onclick="closeMoveModal()" style="padding: 4px;"><i
+                            class="ph ph-x"></i></button>
+                </div>
+                <div class="modal-body" id="move-tree-container">
+                    <!-- Tree items injected here -->
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-ghost" onclick="closeMoveModal()">취소</button>
+                    <button class="btn btn-primary" onclick="confirmMove()">이동</button>
+                </div>
+            </div>
+        </div>
+
         <!-- Main Content -->
         <main class="app-main" style="overflow-y: auto;">
             <div class="dashboard-container">
@@ -421,7 +512,7 @@
         import {
             getAllDiagrams, getCurrentUser, deleteDiagram,
             getAllGroups, createGroup, deleteGroup, updateGroup, moveDiagram, getGroup,
-            duplicateDiagram, renameDiagram, renameGroup
+            duplicateDiagram, renameDiagram, renameGroup, moveGroup
         } from './js/storage.js';
         import { showAlert, showConfirm, showPrompt } from './js/ui-utils.js';
 
@@ -784,8 +875,99 @@
                 if (contextTargetType === 'group') handleDeleteGroup(contextTargetId);
                 else handleDelete(contextTargetId);
             } else if (action === 'move') {
-                // Move Implementation (Next Step)
-                alert('이동 기능은 준비 중입니다.');
+                openMoveModal(contextTargetId, contextTargetType);
+            }
+        };
+
+        // Move Modal Logic
+        const moveModal = document.getElementById('move-modal');
+        const treeContainer = document.getElementById('move-tree-container');
+        let moveTargetId = null; // The item being moved
+        let moveTargetType = null; // 'group' | 'diagram'
+        let selectedDestinationId = null; // The folder selected in tree (null = root)
+
+        window.openMoveModal = (id, type) => {
+            moveTargetId = id;
+            moveTargetType = type;
+            selectedDestinationId = null;
+            renderMoveTree();
+            moveModal.style.display = 'flex';
+        };
+
+        window.closeMoveModal = () => {
+            moveModal.style.display = 'none';
+            moveTargetId = null;
+        };
+
+        window.renderMoveTree = () => {
+            const groups = getAllGroups();
+
+            // Build simple tree structure
+            // We need a flat list in DFS order or build a real tree object.
+            // Let's use recursive render.
+
+            let html = `
+                <div class="folder-tree-item ${selectedDestinationId === null ? 'selected' : ''}" 
+                     onclick="selectDestination(null)">
+                    <i class="ph ph-house"></i> Home (Root)
+                </div>
+            `;
+
+            const renderChildren = (parentId, depth) => {
+                const children = groups.filter(g => g.parentId === parentId);
+                children.forEach(g => {
+                    // Validation: Cannot move group into itself or its children
+                    if (moveTargetType === 'group') {
+                        if (g.id === moveTargetId) return; // Skip self
+                        // Basic circular check (is g a child of moveTargetId?)
+                        // Actually simple recursion here skips children of skipped self automatically?
+                        // No, 'groups' contains all. We must filter.
+                        // The safest is: if g.id === moveTargetId, don't render it AND don't render its children.
+                        // Wait, if we are iterating 'children' of 'parentId', and we skip 'self', we won't recurse into self.
+                        // So checking (g.id === moveTargetId) is enough to prune the subtree of the moving group.
+                    }
+
+                    // Check if g is a descendant of moveTargetId (if moveTargetId is a group)
+                    // Actually, if we skip rendering 'moveTargetId', we naturally skip its children in this recursive function
+                    // because we won't call renderChildren(moveTargetId).
+                    // So simply: if (moveTargetType === 'group' && g.id === moveTargetId) return;
+
+                    if (moveTargetType === 'group' && g.id === moveTargetId) return;
+
+                    const indent = '&nbsp;&nbsp;&nbsp;&nbsp;'.repeat(depth);
+                    const isSelected = selectedDestinationId === g.id ? 'selected' : '';
+
+                    html += `
+                        <div class="folder-tree-item ${isSelected}" onclick="selectDestination('${g.id}')">
+                            <span class="folder-tree-indent">${indent}</span>
+                            <i class="ph-fill ph-folder"></i> ${g.name}
+                        </div>
+                    `;
+                    renderChildren(g.id, depth + 1);
+                });
+            };
+
+            renderChildren(null, 0);
+            treeContainer.innerHTML = html;
+        };
+
+        window.selectDestination = (id) => {
+            selectedDestinationId = id;
+            renderMoveTree(); // Re-render to update selection style
+        };
+
+        window.confirmMove = () => {
+            try {
+                if (moveTargetType === 'group') {
+                    moveGroup(moveTargetId, selectedDestinationId);
+                } else {
+                    moveDiagram(moveTargetId, selectedDestinationId);
+                }
+                closeMoveModal();
+                loadData();
+                filterAndRender();
+            } catch (e) {
+                alert('이동 실패: ' + e.message);
             }
         };
 
