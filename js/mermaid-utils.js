@@ -102,7 +102,7 @@ export function parseMermaidCode(code) {
     const participantRegex = /^(participant|actor)\s+([^\s]+)(?:\s+as\s+(.+))?$/i;
     // A->>B: text, A->>+B: text
     // Regex updated to capture activation suffix (+, -, or combinations like -+) after arrow
-    const messageRegex = /^([^\s]+?)\s*((?:<<-+(?:>>?))|(?:-+(?:>>?|x|\)|>)))([-+]*)\s*([^\s]+?)(?::\s*(.+))?$/;
+    const messageRegex = /^([^\s]+?)\s*((?:<<-+(?:>>?))|(?:-+(?:>>?|x|\)|>)))([-+]*)\s*([^\s]+?)\s*(?::\s*(.+))?$/;
     // Note right of A: text
     const noteRegex = /^Note\s+(right of|left of|over)\s+([^:]+)\s*:\s*(.+)$/i;
 
@@ -223,9 +223,9 @@ export function generateMermaidCode(model) {
         /* Revert to only supporting participant/actor */
         if (type !== 'actor') type = 'participant';
 
-        const label = `[${logicalId}] ${name}`;
+        const label = name;
         // Quote if contains spaces or special chars to avoid syntax errors
-        const safeLabel = /[\s\[\]]/.test(label) ? `"${label}"` : label;
+        const safeLabel = /[\s[\]]/.test(label) ? `"${label}"` : label;
 
         code += `    ${type} ${key} as ${safeLabel}\n`;
     });

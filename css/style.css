@@ -850,6 +850,28 @@ select.input-sm {
     padding: 0.3rem 0.6rem;
 }
 
+/* Delete/Trash Button Hover Effect */
+.btn-delete-p:hover,
+.btn-delete-s:hover,
+.btn-trash:hover {
+    color: var(--color-danger);
+    background-color: rgba(248, 81, 73, 0.15);
+    border-color: var(--color-danger);
+}
+
+.btn-delete-p:hover svg,
+.btn-delete-s:hover svg,
+.btn-trash:hover svg {
+    stroke: var(--color-danger);
+}
+
+/* Context Menu Delete Item Hover - Icon Color */
+.context-menu-item:hover i[data-lucide="trash-2"],
+.context-menu-item:hover svg[data-lucide="trash-2"] {
+    color: var(--color-danger);
+    stroke: var(--color-danger);
+}
+
 /* --- Custom Modal --- */
 .modal-backdrop {
     position: fixed;
@@ -857,146 +879,83 @@ select.input-sm {
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
+    background-color: rgba(0, 0, 0, 0.6);
     backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 1000;
+    z-index: 2000;
+    /* Higher than autocomplete */
     opacity: 1;
-    transition: opacity 0.2s;
+    transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .modal-backdrop.hidden {
     opacity: 0;
     pointer-events: none;
     display: none;
-    /* simple hide */
 }
 
 .modal-dialog {
-    background-color: var(--color-bg-panel);
+    background-color: var(--color-bg-base);
     border: 1px solid var(--color-border);
-    border-radius: var(--border-radius);
+    border-radius: 12px;
     width: 90%;
-    max-width: 400px;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+    max-width: 420px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.05);
     display: flex;
     flex-direction: column;
     animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    transform-origin: center bottom;
+    overflow: hidden;
 }
 
 @keyframes slideUp {
     from {
-        transform: translateY(20px);
+        transform: translateY(15px) scale(0.98);
         opacity: 0;
     }
 
     to {
-        transform: translateY(0);
+        transform: translateY(0) scale(1);
         opacity: 1;
     }
 }
 
 .modal-header {
-    padding: 1rem 1.5rem;
+    padding: 1.25rem 1.5rem;
     border-bottom: 1px solid var(--color-border);
     display: flex;
     justify-content: space-between;
     align-items: center;
+    background-color: var(--color-bg-panel);
 }
 
 .modal-header h3 {
     font-size: 1.1rem;
     font-weight: 600;
     margin: 0;
+    color: var(--color-text-primary);
 }
 
 .modal-body {
     padding: 1.5rem;
     color: var(--color-text-secondary);
+    line-height: 1.5;
 }
 
 .modal-body p {
     margin-bottom: 1rem;
-    line-height: 1.5;
-}
-
-
-/* --- Markdown Editor Autocomplete --- */
-.suggestion-box {
-    position: absolute;
-    background-color: var(--color-bg-panel);
-    border: 1px solid var(--color-border);
-    border-radius: var(--border-radius);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-    z-index: 1000;
-    width: 250px;
-    max-height: 200px;
-    overflow-y: auto;
-    font-size: 0.9rem;
-    font-family: var(--font-sans);
-}
-
-.suggestion-box.hidden {
-    display: none;
-}
-
-.suggestion-item {
-    padding: 0.5rem 0.8rem;
-    cursor: pointer;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: 1px solid var(--color-bg-base);
-}
-
-.suggestion-item:last-child {
-    border-bottom: none;
-}
-
-.suggestion-item.selected,
-.suggestion-item:hover {
-    background-color: var(--color-primary);
-    color: white;
-}
-
-.suggestion-item .s-value {
-    font-weight: 500;
-}
-
-.suggestion-item .s-info {
-    font-size: 0.75rem;
-    opacity: 0.7;
-}
-
-.suggestion-item.selected .s-info,
-.suggestion-item:hover .s-info {
-    opacity: 0.9;
-}
-
-.modal-body .input-text {
-    width: 100%;
-    padding: 0.6rem 0.8rem;
-    background-color: var(--color-bg-base);
-    border: 1px solid var(--color-border);
-    border-radius: var(--border-radius);
-    color: var(--color-text-primary);
-    font-size: 1rem;
-    transition: border-color 0.2s;
-}
-
-.modal-body input:focus {
-    border-color: var(--color-primary);
-    outline: none;
 }
 
 .modal-footer {
     padding: 1rem 1.5rem;
-    border-top: 1px solid var(--color-border);
+    border-top: none;
     display: flex;
     justify-content: flex-end;
-    gap: 0.5rem;
+    gap: 0.75rem;
+    background-color: transparent;
 }
 
 /* Modal Styles */
@@ -1057,6 +1016,82 @@ select.input-sm {
 .modal-body {
     padding: 1rem;
     overflow-y: auto;
+}
+
+/* --- Markdown Editor Autocomplete --- */
+.suggestion-box {
+    position: absolute;
+    background-color: var(--color-bg-panel);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    z-index: 2500;
+    width: 250px;
+    max-height: 200px;
+    overflow-y: auto;
+    font-size: 0.9rem;
+    font-family: var(--font-sans);
+}
+
+.suggestion-box.hidden {
+    display: none;
+}
+
+.suggestion-item {
+    padding: 0.5rem 0.8rem;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--color-bg-base);
+}
+
+.suggestion-item:last-child {
+    border-bottom: none;
+}
+
+.suggestion-item.selected,
+.suggestion-item:hover {
+    background-color: var(--color-primary);
+    color: white;
+}
+
+.suggestion-item .s-value {
+    font-weight: 500;
+}
+
+.suggestion-item .s-info {
+    font-size: 0.75rem;
+    opacity: 0.7;
+}
+
+.suggestion-item.selected .s-info,
+.suggestion-item:hover .s-info {
+    opacity: 0.9;
+}
+
+/* Modal Input Styling */
+.modal-body .input-text,
+.modal-body input[type="text"] {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    background-color: var(--color-bg-base);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius);
+    color: var(--color-text-primary);
+    font-size: 1rem;
+    transition: all 0.2s;
+    appearance: none;
+    -webkit-appearance: none;
+    box-sizing: border-box;
+    /* Important for padding */
+}
+
+.modal-body .input-text:focus,
+.modal-body input[type="text"]:focus {
+    border-color: var(--color-primary);
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
 }
 
 .history-list {

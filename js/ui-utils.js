@@ -14,10 +14,10 @@ function ensureModalContainer() {
     modalContainer.id = 'custom-modal-container';
     modalContainer.className = 'modal-backdrop hidden';
     modalContainer.innerHTML = `
-        <div class="modal-content" style="width: 400px; margin: 0 auto; margin-top: 15vh;">
+        <div class="modal-dialog">
             <div class="modal-header">
                 <h3 id="modal-title">Title</h3>
-                <button class="btn-icon" id="modal-close"><i class="ph ph-x"></i></button>
+                <button class="btn-icon" id="modal-close"><i data-lucide="x"></i></button>
             </div>
             <div class="modal-body" id="modal-body">
                 <!-- Content -->

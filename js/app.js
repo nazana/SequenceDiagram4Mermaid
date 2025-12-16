@@ -1,8 +1,12 @@
+/* global lucide */
 import { renderMermaid, parseMermaidCode, generateMermaidCode, sanitizeMermaidCode } from './mermaid-utils.js';
 import { initGridEditor, renderGridEditor } from './grid-editor.js';
 import { getCurrentUser, saveUser, getDiagram, createDiagram, updateDiagram, getDiagramVersions, getVersion, getGroup } from './storage.js';
 import { showAlert, showPrompt, showConfirm } from './ui-utils.js';
-import { initSmartGuide } from './editor-guide.js';
+
+import {
+    initSmartGuide
+} from './editor-guide.js';
 
 // DOM Elements
 const markdownInput = document.getElementById('markdown-input');
@@ -36,10 +40,10 @@ window.isPanning = false;
 const DEFAULT_DIAGRAM = `sequenceDiagram
     participant A as Alice
     participant B as Bob
-    
-    A->>B: Hello Bob, how are you?
-    B->>A: Great!
-`;
+
+    A ->> B: Hello Bob, how are you ?
+    B ->> A : Great!
+        `;
 
 // Initialize App
 async function init() {
@@ -120,8 +124,8 @@ function updateTabUI() {
     });
 
     tabContents.forEach(content => {
-        if (content.id === `${activeTab}-editor`) content.classList.add('active');
-        else content.classList.remove('active');
+        if (content.id === `tab-${activeTab}`) content.classList.remove('hidden');
+        else content.classList.add('hidden');
     });
 }
 
@@ -172,26 +176,26 @@ function renderHeaderBreadcrumb(diagram) {
     // Build HTML
     // Home > Group > ... > Diagram
     let html = `
-        <a href="dashboard.html" style="text-decoration: none; color: inherit; display: flex; align-items: center; gap: 0.5rem;" title="Dashboard">
-            <i data-lucide="house" style="width: 1.2rem; height: 1.2rem;"></i>
-        </a>
+    <a href="dashboard.html" style="text-decoration: none; color: inherit; display: flex; align-items: center; gap: 0.5rem;" title="Dashboard">
+        <i data-lucide="house" style="width: 1.2rem; height: 1.2rem;"></i>
+    </a>
     `;
 
     path.forEach(g => {
         html += `
-            <span style="opacity: 0.5; font-size: 0.8rem; display: flex; align-items: center;"><i data-lucide="chevron-right" style="width: 14px; height: 14px;"></i></span>
-            <a href="dashboard.html?groupId=${g.id}" style="text-decoration: none; color: inherit; font-size: 0.95rem;">
-                ${g.name}
-            </a>
-        `;
+    <span style="opacity: 0.5; font-size: 0.8rem; display: flex; align-items: center;"><i data-lucide="chevron-right" style="width: 14px; height: 14px;"></i></span>
+        <a href="dashboard.html?groupId=${g.id}" style="text-decoration: none; color: inherit; font-size: 0.95rem;">
+            ${g.name}
+        </a>
+`;
     });
 
     html += `
-        <span style="opacity: 0.5; font-size: 0.8rem; display: flex; align-items: center;"><i data-lucide="chevron-right" style="width: 14px; height: 14px;"></i></span>
+    <span style="opacity: 0.5; font-size: 0.8rem; display: flex; align-items: center;"><i data-lucide="chevron-right" style="width: 14px; height: 14px;"></i></span>
         <span style="font-weight: 600; color: var(--color-primary); font-size: 0.95rem;">
             ${diagram.title}
         </span>
-    `;
+`;
 
     headerLogoArea.innerHTML = html;
     if (window.lucide) lucide.createIcons();
@@ -215,7 +219,6 @@ window.onGridRowSelect = function (index) {
     // We need to find the corresponding message in SVG.
     // Strategy: Assuming .messageText elements correspond roughly to message items.
     // Notes are .noteText.
-    const messageTexts = mermaidOutput.querySelectorAll('.messageText');
 
     // Clear previous highlights & Reset Markers
     mermaidOutput.querySelectorAll('.mermaid-selected-text').forEach(el => el.classList.remove('mermaid-selected-text'));
@@ -324,7 +327,7 @@ function setupEditors() {
     });
 
     // Initialize Smart Guide
-    initSmartGuide(markdownInput);
+    // initSmartGuide(markdownInput);
 
     tabButtons.forEach(btn => {
         btn.addEventListener('click', () => {
@@ -399,7 +402,7 @@ function setupToolbar() {
     const updateZoomLevel = () => {
         if (panzoomInstance && zoomLevelEl) {
             const scale = panzoomInstance.getScale();
-            zoomLevelEl.textContent = `${Math.round(scale * 100)}%`;
+            zoomLevelEl.textContent = `${Math.round(scale * 100)}% `;
         }
     };
 
@@ -412,18 +415,10 @@ function setupToolbar() {
 function setupDetailPanel() {
     const resizer = document.getElementById('resizer');
     const editorPanel = document.querySelector('.editor-panel');
-    let isResizing = false;
-    let isVertical = window.innerWidth <= 768; // Initial check
 
-    window.addEventListener('resize', () => {
-        isVertical = window.innerWidth <= 768;
-    });
-
-    const btnToggleSidebar = document.getElementById('btn-toggle-sidebar');
     const btnCloseSidebar = document.getElementById('btn-close-sidebar');
 
     let isCollapsed = false;
-    let lastWidth = '50%';
 
     // Create collapsed sidebar toggle button
     const collapsedBtn = document.createElement('div');
@@ -459,7 +454,7 @@ function setupDetailPanel() {
         }
     }
 
-    btnToggleSidebar.addEventListener('click', toggleSidebar);
+
     btnCloseSidebar.addEventListener('click', toggleSidebar);
 
     // Hide Resizer as width is fixed
@@ -527,7 +522,7 @@ function setupDataActions() {
                 renderHeaderBreadcrumb(diagram);
 
                 // Update URL without reload
-                const newUrl = `${window.location.pathname}?id=${currentDiagramId}`;
+                const newUrl = `${window.location.pathname}?id = ${currentDiagramId} `;
                 window.history.pushState({ path: newUrl }, '', newUrl);
                 await showAlert('새로운 다이어그램이 생성되었습니다!');
             }
@@ -563,14 +558,14 @@ function setupDataActions() {
 
 function renderHistoryList(versions) {
     historyList.innerHTML = versions.map((v, index) => `
-        <li class="history-item" data-id="${v.id}">
+    < li class="history-item" data - id="${v.id}" >
             <div class="history-item-meta">
                 <span>Version ${versions.length - index}</span>
                 <span>${new Date(v.timestamp).toLocaleString()}</span>
             </div>
             <div class="history-item-note">${v.note || 'No note'}</div>
             <div class="history-item-meta">By ${v.authorName}</div>
-        </li>
+        </li >
     `).join('');
 
     // Add click listeners

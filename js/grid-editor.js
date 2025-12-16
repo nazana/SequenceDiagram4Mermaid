@@ -1,3 +1,4 @@
+/* global lucide */
 /**
  * Logic for the Grid UI Editor.
  */
@@ -97,7 +98,7 @@ export function renderGridEditor(container, model) {
             <button class="btn-participant-select p-type-btn" style="width: 90px; flex: none;">
                 ${p.type.charAt(0).toUpperCase() + p.type.slice(1)}
             </button>
-            <input type="text" class="input-sm p-name" style="flex: 1;" value="${p.name || ''}" placeholder="Name (Display)">
+            <input type="text" class="input-sm p-name" style="flex: 1;" value="${p.name || ''}" placeholder="Name (Display)" autocomplete="off" data-lpignore="true" data-form-type="other">
             <button class="btn-icon btn-sm btn-delete-p" data-index="${index}"><i data-lucide="trash-2" style="width:16px;height:16px;"></i></button>
         `;
 
@@ -313,7 +314,7 @@ export function renderGridEditor(container, model) {
                         ${ARROW_SVGS[item.arrow] || ARROW_SVGS['->>']}
                     </button>
                 </span>
-                <span class="col-msg"><input type="text" class="input-sm seq-content" value="${item.content || ''}"></span>
+                <span class="col-msg"><input type="text" class="input-sm seq-content" value="${item.content || ''}" autocomplete="off" data-lpignore="true" data-form-type="other"></span>
                 <span class="col-actions">
                     <button class="btn-icon btn-sm btn-delete-s" data-index="${index}"><i data-lucide="trash-2" style="width:16px;height:16px;"></i></button>
                 </span>
@@ -470,13 +471,7 @@ function checkSimulation(model, overrideIndex, overrideState, participantId) {
     return true;
 }
 
-function getParticipantOptions(participants, selectedId) {
-    return participants.map(p => {
-        const logicalId = p.logicalId || p.id;
-        const name = p.name || logicalId;
-        return `<option value="${p.id}" ${p.id === selectedId ? 'selected' : ''}>[${logicalId}] ${name}</option>`;
-    }).join('');
-}
+
 
 function triggerChange() {
     if (onChangeCallback) onChangeCallback(currentModel);
@@ -593,7 +588,7 @@ function getParticipantLabel(participants, id) {
     if (!p) return id;
     const logicalId = p.logicalId || p.id;
     const name = p.name || logicalId;
-    return `[${logicalId}] ${name}`;
+    return name;
 }
 
 function openParticipantSelector(event, index, field, currentVal) {
@@ -623,7 +618,7 @@ function openParticipantSelector(event, index, field, currentVal) {
 
         const logicalId = p.logicalId || p.id;
         const name = p.name || logicalId;
-        const label = `[${logicalId}] ${name}`;
+        const label = name; // Only show name
 
         item.innerHTML = `<span>${label}</span>`;
 

@@ -37,8 +37,7 @@
                 </a>
             </div>
             <div class="toolbar">
-                <button id="btn-toggle-sidebar" class="btn btn-ghost" title="에디터 열기/닫기"><i
-                        data-lucide="panel-left"></i></button>
+
                 <div class="divider-vertical"></div>
                 <a href="guide.html" class="btn btn-ghost" title="사용 가이드"><i data-lucide="circle-help"></i></a>
                 <a href="dashboard.html" class="btn btn-ghost" title="대시보드"><i data-lucide="layout-grid"></i></a>
@@ -70,7 +69,8 @@
                 </div>
 
                 <div class="tab-content hidden" id="tab-markdown">
-                    <textarea id="markdown-input" spellcheck="false" placeholder="Mermaid 코드를 입력하세요..."></textarea>
+                    <textarea id="markdown-input" spellcheck="false" placeholder="Mermaid 코드 (읽기 전용)" autocomplete="off"
+                        data-lpignore="true" data-form-type="other" readonly></textarea>
                 </div>
             </div>
 
