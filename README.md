@@ -20,14 +20,20 @@ Mermaid Editor는 개발자와 기획자가 시퀀스 다이어그램을 더 빠
 - **Automatic Activation Fix**: 시퀀스 다이어그램에서 가장 골치 아픈 'Activation(막대바)'의 열고 닫는 순서를 자동으로 감지하고 수정합니다.
 - 실수로 `Deactivate`를 누락하거나 순서가 꼬여도 에디터가 알아서 문법 오류를 방지합니다.
 
-### 3. Interactive Viewer
-- **Zoom & Pan**: 대형 다이어그램도 마우스 휠과 드래그로 부드럽게 탐색할 수 있습니다.
-- **Element Highlight**: 다이어그램의 요소를 클릭하면 편집기의 해당 행으로 즉시 이동합니다.
+### 3. Dashboard & Organization (체계적인 관리)
+- **Grouping System**: 다이어그램을 폴더(Group)로 정리하여 관리할 수 있습니다.
+- **Drag & Drop**: 직관적인 드래그 앤 드롭으로 다이어그램을 이동하거나 순서를 정리하세요.
+- **Compact Search**: 개선된 검색 바와 필터링 옵션으로 필요한 다이어그램을 빠르게 찾습니다.
 
 ### 4. Zero Server & Data Privacy
 - **Local Storage**: 모든 데이터는 브라우저의 로컬 스토리지에만 저장됩니다.
+- **Improved Version Control**: 작업 이력을 슬라이드 패널로 확인하고, 원하는 시점으로 즉시 복구(Restore)하거나 삭제할 수 있습니다.
 - **No Data Leak**: 서버로 그 어떤 데이터도 전송되지 않아 보안상 매우 안전합니다.
-- **Version Control**: 작업 이력을 로컬에 저장하여 언제든 이전 버전으로 되돌릴 수 있습니다.
+
+### 5. Enhanced UX (향상된 사용자 경험)
+- **Fullscreen Mode**: 다이어그램을 화면 가득히 채워 프레젠테이션이나 리뷰에 집중할 수 있습니다.
+- **Context Menu Shortcuts**: 단축키(`M`:이동, `D`:복제, `Space`:상세편집, `Del`:삭제)로 마우스 없이 빠르게 작업하세요.
+- **Interactive Viewer**: Zoom & Pan, Element Highlight 기능을 지원합니다.
 
 ---
 
@@ -88,7 +94,8 @@ npm start
 ├── guide.html          # 사용자 가이드 페이지
 │
 ├── css/
-│   └── style.css       # 전역 스타일 (CSS Variables 활용)
+│   ├── style.css       # 전역 스타일 (CSS Variables 활용)
+│   └── fullscreen.css  # 전체 화면 모드 스타일
 │
 ├── js/
 │   ├── app.js          # 메인 컨트롤러 (이벤트, 탭 관리)
