@@ -1,7 +1,7 @@
 /* global lucide */
 import { renderMermaid, parseMermaidCode, generateMermaidCode, sanitizeMermaidCode } from './mermaid-utils.js';
 import { initGridEditor, renderGridEditor } from './grid-editor.js';
-import { getCurrentUser, saveUser, getDiagram, createDiagram, updateDiagram, getDiagramVersions, getVersion, getGroup } from './storage.js';
+import { getCurrentUser, saveUser, getDiagram, createDiagram, updateDiagram, getDiagramVersions, getVersion, getGroup, renameVersion, deleteVersion } from './storage.js';
 import { showAlert, showPrompt, showConfirm } from './ui-utils.js';
 
 import {
@@ -25,9 +25,12 @@ const btnHistory = document.getElementById('btn-history');
 const btnNew = document.getElementById('btn-new');
 
 // Modal Elements
-const historyModal = document.getElementById('history-modal');
-const btnCloseHistory = document.getElementById('btn-close-history');
+// History Panel Elements
+const historyPanel = document.getElementById('history-panel');
+const historyOverlay = document.getElementById('history-overlay');
+const btnCloseHistoryPanel = document.getElementById('btn-close-history-panel');
 const historyList = document.getElementById('history-list');
+const btnDeleteVersion = document.getElementById('btn-delete-version');
 
 // State
 let panzoomInstance = null;
@@ -506,8 +509,16 @@ function setupDataActions() {
             }
 
             if (currentDiagramId) {
+                // Check for changes
+                const diagram = getDiagram(currentDiagramId);
+                const latestVersion = getVersion(diagram.latestVersionId);
+                if (latestVersion && latestVersion.code === code) {
+                    await showAlert('변경된 내용이 없습니다.');
+                    return;
+                }
+
                 // Update
-                const note = await showPrompt('변경 사항에 대한 메모를 남겨주세요:', 'Update', '버전 저장');
+                const note = await showPrompt('버전 이름(메모)을 입력해주세요:', 'Update', '버전 저장');
                 if (note === null) return; // Cancelled
                 updateDiagram(currentDiagramId, code, user.name, note, thumbnail);
                 await showAlert('저장되었습니다!');
@@ -532,56 +543,194 @@ function setupDataActions() {
         }
     });
 
-    // History
+    // History Panel
     btnHistory.addEventListener('click', async () => {
         if (!currentDiagramId) {
             await showAlert('저장된 다이어그램 이력이 없습니다.');
             return;
         }
-
-        const versions = getDiagramVersions(currentDiagramId);
-        renderHistoryList(versions);
-        historyModal.classList.remove('hidden');
+        openHistoryPanel();
     });
 
-    btnCloseHistory.addEventListener('click', () => {
-        historyModal.classList.add('hidden');
+    btnCloseHistoryPanel.addEventListener('click', closeHistoryPanel);
+    historyOverlay.addEventListener('click', closeHistoryPanel);
+
+    // Initial disable
+    btnDeleteVersion.disabled = true;
+    btnDeleteVersion.addEventListener('click', async () => {
+        const selectedId = getSelectedVersionId();
+        if (selectedId) {
+            // Pre-check for single version to provide better feedback
+            const versions = getDiagramVersions(currentDiagramId);
+            if (versions.length <= 1) {
+                await showAlert('최소 하나의 버전은 존재해야 합니다.');
+                return;
+            }
+
+            if (await showConfirm('선택한 버전을 삭제하시겠습니까?', '버전 삭제')) {
+                try {
+                    deleteVersion(selectedId);
+                    // Refresh list
+                    const updatedVersions = getDiagramVersions(currentDiagramId);
+                    renderHistoryList(updatedVersions);
+                    btnDeleteVersion.disabled = true; // Reset selection
+                } catch (e) {
+                    await showAlert(e.message);
+                }
+            }
+        }
     });
 
-    // Close modal on click outside
-    historyModal.addEventListener('click', (e) => {
-        if (e.target === historyModal) {
-            historyModal.classList.add('hidden');
+    // Handle Rename (Event Delegation for better performance/structure)
+    historyList.addEventListener('click', async (e) => {
+        // Edit Icon Click
+        if (e.target.closest('.history-icon-edit')) {
+            e.stopPropagation();
+            const item = e.target.closest('.history-item');
+            const titleEl = item.querySelector('.history-title-text');
+            const currentTitle = titleEl.textContent;
+
+            // Swap to Input
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'history-title-input';
+            input.value = currentTitle;
+
+            titleEl.replaceWith(input);
+            input.focus();
+
+            // Save on Blur or Enter
+            const saveRename = () => {
+                const newTitle = input.value.trim();
+                if (newTitle && newTitle !== currentTitle) {
+                    renameVersion(item.dataset.id, newTitle);
+                    // Refresh entire list to ensure sort/data consistency or just update text
+                    // Simple text update:
+                    const newSpan = document.createElement('span');
+                    newSpan.className = 'history-title-text';
+                    newSpan.textContent = newTitle;
+                    input.replaceWith(newSpan);
+                } else {
+                    // Revert
+                    const oldSpan = document.createElement('span');
+                    oldSpan.className = 'history-title-text';
+                    oldSpan.textContent = currentTitle;
+                    input.replaceWith(oldSpan);
+                }
+            };
+
+            input.addEventListener('blur', saveRename);
+            input.addEventListener('keydown', (ev) => {
+                if (ev.key === 'Enter') {
+                    input.blur();
+                }
+            });
         }
     });
 }
 
-function renderHistoryList(versions) {
-    historyList.innerHTML = versions.map((v, index) => `
-    < li class="history-item" data - id="${v.id}" >
-            <div class="history-item-meta">
-                <span>Version ${versions.length - index}</span>
-                <span>${new Date(v.timestamp).toLocaleString()}</span>
-            </div>
-            <div class="history-item-note">${v.note || 'No note'}</div>
-            <div class="history-item-meta">By ${v.authorName}</div>
-        </li >
-    `).join('');
+// History Panel Logic
+function openHistoryPanel() {
+    const versions = getDiagramVersions(currentDiagramId);
+    renderHistoryList(versions);
+    historyPanel.classList.add('open');
+    historyOverlay.classList.remove('hidden');
+}
 
-    // Add click listeners
-    document.querySelectorAll('.history-item').forEach(item => {
-        item.addEventListener('click', () => {
-            if (confirm('이 버전으로 복구하시겠습니까? 현재 내용은 덮어씌워집니다.')) {
-                const versionId = item.dataset.id;
-                const version = getVersion(versionId);
-                if (version) {
-                    markdownInput.value = version.code;
-                    syncFromMarkdown();
-                    historyModal.classList.add('hidden');
-                }
-            }
+function closeHistoryPanel() {
+    historyPanel.classList.remove('open');
+    historyOverlay.classList.add('hidden');
+}
+
+function getSelectedVersionId() {
+    const selected = historyList.querySelector('.history-item.selected');
+    return selected ? selected.dataset.id : null;
+}
+
+function renderHistoryList(versions) {
+    historyList.innerHTML = versions.map((v, index) => {
+        const timeAgo = formatTimeAgo(v.timestamp);
+        return `
+        <li class="history-item" data-id="${v.id}">
+            <div class="history-item-left">
+                <i data-lucide="pencil" class="history-icon-edit" title="이름 변경"></i>
+            </div>
+            <div class="history-item-main">
+                <div class="history-title">
+                    <span class="history-title-text">${v.title || `Version ${versions.length - index}`}</span>
+                </div>
+                <div class="history-meta">
+                    <span>${timeAgo}</span>
+                    <span>${v.authorName}</span>
+                </div>
+            </div>
+            <div class="history-item-right">
+                <button class="history-btn-restore" title="이 버전으로 복구">
+                    <i data-lucide="rotate-ccw"></i>
+                </button>
+            </div>
+        </li>
+        `;
+    }).join('');
+
+    // Re-initialize icons
+    if (window.lucide) lucide.createIcons();
+
+    // Attach Item Click Listeners (Selection & Restore)
+    historyList.querySelectorAll('.history-item').forEach(item => {
+        // Selection
+        item.addEventListener('click', (e) => {
+            // Ignore if input or button clicked
+            if (e.target.closest('input') || e.target.closest('.history-btn-restore')) return;
+
+            // Toggle selection
+            historyList.querySelectorAll('.history-item').forEach(i => i.classList.remove('selected'));
+            item.classList.add('selected');
+
+            // Always enable button, check condition on click
+            btnDeleteVersion.disabled = false;
         });
+
+        // Restore
+        const btnRestore = item.querySelector('.history-btn-restore');
+        if (btnRestore) {
+            btnRestore.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                if (await showConfirm('이 버전으로 복구하시겠습니까? 현재 내용은 덮어씌워집니다.', '버전 복구')) {
+                    const version = getVersion(item.dataset.id);
+                    if (version) {
+                        markdownInput.value = version.code;
+                        syncFromMarkdown();
+                        closeHistoryPanel();
+                        await showAlert('버전이 복구되었습니다.');
+                    }
+                }
+            });
+        }
     });
+
+    btnDeleteVersion.disabled = true;
+}
+
+function formatTimeAgo(timestamp) {
+    const seconds = Math.floor((Date.now() - timestamp) / 1000);
+
+    let interval = seconds / 31536000;
+    if (interval > 1) return Math.floor(interval) + "년 전";
+
+    interval = seconds / 2592000;
+    if (interval > 1) return Math.floor(interval) + "개월 전";
+
+    interval = seconds / 86400;
+    if (interval > 1) return Math.floor(interval) + "일 전";
+
+    interval = seconds / 3600;
+    if (interval > 1) return Math.floor(interval) + "시간 전";
+
+    interval = seconds / 60;
+    if (interval > 1) return Math.floor(interval) + "분 전";
+
+    return "방금 전";
 }
 
 // Start

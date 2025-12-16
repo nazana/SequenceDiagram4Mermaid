@@ -96,20 +96,26 @@
         </main>
     </div>
 
-    <!-- History Modal -->
-    <div id="history-modal" class="modal-overlay hidden">
-        <div class="modal">
-            <div class="modal-header">
-                <h3>버전 이력</h3>
-                <button id="btn-close-history" class="btn-icon"><i data-lucide="x"></i></button>
-            </div>
-            <div class="modal-body">
-                <ul id="history-list" class="history-list">
-                    <!-- Items injected here -->
-                </ul>
-            </div>
+    <!-- History Slide-in Panel -->
+    <div id="history-panel" class="history-panel">
+        <div class="history-header">
+            <button id="btn-delete-version" class="btn-icon text-danger" title="선택 항목 삭제" disabled>
+                <i data-lucide="trash-2"></i>
+            </button>
+            <div class="spacer"></div>
+            <button id="btn-close-history-panel" class="btn-icon" title="닫기">
+                <i data-lucide="x"></i>
+            </button>
+        </div>
+        <div class="history-content">
+            <ul id="history-list" class="history-list">
+                <!-- Items injected here -->
+            </ul>
         </div>
     </div>
+    
+    <!-- Overlay for closing panel when clicking outside -->
+    <div id="history-overlay" class="modal-overlay hidden" style="z-index: 999;"></div>
 
     <!-- Application Logic -->
     <script type="module" src="js/app.js"></script>

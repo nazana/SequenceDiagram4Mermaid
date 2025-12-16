@@ -3,7 +3,7 @@
  * 
  * Schema:
  * - `mermaid_diagrams`: Array<{ id, title, createdBy, createdAt, updatedBy, updatedAt, latestVersionId }>
- * - `mermaid_versions`: Array<{ id, diagramId, code, authorName, timestamp, note }> (Flat list for simplicity)
+ * - `mermaid_versions`: Array<{ id, diagramId, code, authorName, timestamp, note, title }> (Flat list for simplicity)
  * - `mermaid_user`: { name, lastSeen }
  */
 
@@ -52,7 +52,8 @@ export function createDiagram(title, initialCode, authorName, groupId = null, th
         code: initialCode,
         authorName,
         timestamp: Date.now(),
-        note: 'Initial creation'
+        note: 'Initial creation',
+        title: 'Initial Version'
     };
     versions.push(version);
     localStorage.setItem(KEYS.VERSIONS, JSON.stringify(versions));
@@ -92,7 +93,8 @@ export function updateDiagram(diagramId, code, authorName, note = 'Update', thum
         code,
         authorName,
         timestamp: Date.now(),
-        note
+        note,
+        title: note || `Version ${versions.filter(v => v.diagramId === diagramId).length + 1}`
     };
     versions.push(version);
     localStorage.setItem(KEYS.VERSIONS, JSON.stringify(versions));
@@ -202,6 +204,36 @@ export function getDiagramVersions(diagramId) {
 export function getVersion(versionId) {
     const versions = getAllVersions();
     return versions.find(v => v.id === versionId);
+}
+
+export function renameVersion(versionId, newTitle) {
+    const versions = getAllVersions();
+    const version = versions.find(v => v.id === versionId);
+    if (!version) throw new Error('Version not found');
+
+    version.title = newTitle;
+    localStorage.setItem(KEYS.VERSIONS, JSON.stringify(versions));
+    return version;
+}
+
+export function deleteVersion(versionId) {
+    let versions = getAllVersions();
+    const targetVersion = versions.find(v => v.id === versionId);
+
+    // Check if it's the only version or marked as Initial (though title can change, index 0 sorted by time asc is usually initial)
+    // Better strategy: Check if it's the oldest version for that diagram?
+    // Or just check if specific flag or criteria?
+    // User request: "Init version shouldn't be deleted".
+    // We can check if it creates an empty list?
+    if (targetVersion) {
+        const diagramVersions = versions.filter(v => v.diagramId === targetVersion.diagramId);
+        if (diagramVersions.length <= 1) {
+            throw new Error('최소 하나의 버전은 존재해야 합니다.');
+        }
+    }
+
+    versions = versions.filter(v => v.id !== versionId);
+    localStorage.setItem(KEYS.VERSIONS, JSON.stringify(versions));
 }
 
 // --- Group Management ---

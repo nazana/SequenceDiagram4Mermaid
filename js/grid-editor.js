@@ -486,7 +486,40 @@ function addParticipant() {
 
 function updateParticipant(index, field, value) {
     currentModel.participants[index][field] = value;
-    renderGridEditor(currentContainer, currentModel);
+
+    if (field === 'name') {
+        // Don't re-render full grid to maintain focus
+        // But update Sequence buttons referencing this participant to keep UI consistent
+        const pId = currentModel.participants[index].id;
+        const newLabel = getParticipantLabel(currentModel.participants, pId);
+
+        // Update source buttons
+        document.querySelectorAll('.seq-source-btn').forEach(btn => {
+            // Check if this button belongs to a row that uses this participant
+            // Implementation detail: we could store data-id on button, or just re-eval text
+            // But we don't have data-id on buttons easily. 
+            // Better: loop through model items and update index-matched buttons?
+            // Or simpler: just find all buttons? No, we need to know which one matches.
+            // Let's rely on the DOM structure or just re-render only the sequence section? No.
+        });
+
+        // Actually, simplest is to iterate items and update matched rows
+        const rows = document.querySelectorAll('.seq-row');
+        currentModel.items.forEach((item, idx) => {
+            if (item.type !== 'message') return;
+            if (item.source === pId) {
+                const btn = rows[idx]?.querySelector('.seq-source-btn');
+                if (btn) btn.innerText = newLabel; // InnerText removes html but label is text
+            }
+            if (item.target === pId) {
+                const btn = rows[idx]?.querySelector('.seq-target-btn');
+                if (btn) btn.innerText = newLabel;
+            }
+        });
+
+    } else {
+        renderGridEditor(currentContainer, currentModel);
+    }
     triggerChange();
 }
 
