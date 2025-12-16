@@ -1,0 +1,68 @@
+/* Fullscreen Mode */
+body.is-fullscreen .app-header,
+body.is-fullscreen .editor-panel,
+body.is-fullscreen .preview-toolbar,
+body.is-fullscreen .resizer,
+body.is-fullscreen .collapsed-sidebar-trans-btn,
+body.is-fullscreen .history-panel,
+body.is-fullscreen .history-overlay {
+    display: none !important;
+}
+
+body.is-fullscreen .app-main {
+    height: 100vh;
+}
+
+body.is-fullscreen .preview-panel {
+    background-color: var(--color-bg-base);
+    /* Clean background */
+    width: 100vw;
+    height: 100vh;
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1000;
+    margin: 0;
+    border: none;
+}
+
+body.is-fullscreen .mermaid-container {
+    background-image: none !important;
+}
+
+/* Ensure nothing else interferes */
+body.is-fullscreen {
+    overflow: hidden;
+}
+
+/* Close Button for Fullscreen */
+.fullscreen-close-btn {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1001;
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: white;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    backdrop-filter: blur(4px);
+    opacity: 0.5;
+}
+
+.fullscreen-close-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: scale(1.1);
+    opacity: 1;
+}
+
+.fullscreen-close-btn i {
+    width: 24px;
+    height: 24px;
+}

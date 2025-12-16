@@ -398,6 +398,14 @@ a {
     gap: 0.5rem;
 }
 
+#zoom-level {
+    min-width: 48px;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
 .mermaid-container {
     flex: 1;
     display: flex;

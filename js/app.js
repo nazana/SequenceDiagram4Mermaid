@@ -56,8 +56,28 @@ async function init() {
     const urlParams = new URLSearchParams(window.location.search);
     const id = urlParams.get('id');
     const groupId = urlParams.get('groupId');
+    const isFullscreen = urlParams.get('fullscreen') === 'true';
+
     if (groupId) {
         window.currentGroupId = groupId;
+    }
+
+    if (isFullscreen) {
+        document.body.classList.add('is-fullscreen');
+
+        // Create Close Button
+        const closeBtn = document.createElement('button');
+        closeBtn.className = 'fullscreen-close-btn';
+        closeBtn.innerHTML = '<i data-lucide="x"></i>';
+        closeBtn.title = 'Close Fullscreen';
+
+        // Return to dashboard logic
+        // If we have history (came from dashboard), back might work, but safer to go to dashboard directly
+        // User requested: "닫으면 원래 나의 다이어그램 위치로 보이면 돼" -> Dashboard default view
+        closeBtn.onclick = () => {
+            window.location.href = 'dashboard.html';
+        };
+        document.body.appendChild(closeBtn);
     }
 
     if (id) {
@@ -117,6 +137,33 @@ async function init() {
     // Initialize Icons
     if (window.lucide) {
         lucide.createIcons();
+    }
+
+    // Fullscreen Zoom-to-Fit Logic
+    if (isFullscreen && panzoomInstance) {
+        setTimeout(() => {
+            const svg = mermaidOutput.querySelector('svg');
+            if (svg) {
+                // Reset first
+                panzoomInstance.reset({ animate: false });
+
+                // Calculate Fit
+                const container = mermaidContainer.getBoundingClientRect();
+                // Get SVG generic size (might be 100% or unbounded depending on CSS)
+                // We use getBBox or getBoundingClientRect after reset (scale 1)
+                const svgRect = svg.getBoundingClientRect();
+
+                if (svgRect.width > container.width || svgRect.height > container.height) {
+                    const padding = 60;
+                    const scaleX = (container.width - padding) / svgRect.width;
+                    const scaleY = (container.height - padding) / svgRect.height;
+                    const scale = Math.min(scaleX, scaleY); // fit both
+
+                    // Apply zoom
+                    panzoomInstance.zoom(scale, { animate: true });
+                }
+            }
+        }, 300); // Slight delay for rendering stability
     }
 }
 

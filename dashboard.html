@@ -98,7 +98,7 @@
         /* Shared Card Styles */
         .diagram-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            grid-template-columns: repeat(4, 1fr);
             gap: 1.5rem;
             align-items: start;
             /* Align items at start to handle varying heights if any */
@@ -124,7 +124,7 @@
 
         .diagram-card:hover,
         .folder-card:hover {
-            transform: translateY(-2px);
+            /* transform: translateY(-2px); Removed per user request */
             border-color: var(--color-primary);
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         }
@@ -170,11 +170,14 @@
             display: flex;
             flex-direction: column;
             gap: 0.4rem;
+            background-color: #0d1117;
+            /* Darker than panel, lighter than base? distinct footer area */
+            border-top: 1px solid var(--color-border);
         }
 
         .card-title {
             font-weight: 600;
-            font-size: 1rem;
+            font-size: 0.875rem;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -191,25 +194,39 @@
         }
 
         .card-actions {
-            margin-top: 0.5rem;
-            display: flex;
-            justify-content: flex-end;
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            opacity: 0;
+            transition: opacity 0.2s;
+            z-index: 10;
         }
 
-        /* Delete Button - Make it subtle or icon only */
-        .btn-trash {
+        .diagram-card:hover .card-actions,
+        .folder-card:hover .card-actions {
+            opacity: 1;
+        }
+
+        /* Menu Button */
+        .btn-menu {
             background: transparent;
+            /* Removed white bg */
             border: none;
-            color: var(--color-text-muted);
-            padding: 4px;
+            /* No border by default */
+            color: var(--color-text-secondary);
+            padding: 6px;
             cursor: pointer;
             border-radius: 4px;
             transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            /* box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); Removed shadow */
         }
 
-        .btn-trash:hover {
-            color: var(--color-error);
-            background-color: rgba(255, 0, 0, 0.1);
+        .btn-menu:hover {
+            background-color: var(--color-bg-hover);
+            color: var(--color-primary);
         }
 
         .empty-state {
@@ -503,24 +520,29 @@
 
         <!-- Context Menu -->
         <div id="context-menu">
-            <div class="context-menu-item" onclick="handleContextAction('rename')">
-                <i data-lucide="pencil"></i>
-                <span>이름 변경</span>
-                <span class="context-menu-shortcut">Space</span>
-            </div>
             <div class="context-menu-item" onclick="handleContextAction('move')">
                 <i data-lucide="folder-input"></i>
-                <span>이동...</span>
+                <span>Move</span>
+                <span class="context-menu-shortcut">M</span>
+            </div>
+            <div class="context-menu-item" onclick="handleContextAction('edit-details')">
+                <i data-lucide="pencil"></i>
+                <span id="ctx-edit-text">Edit diagram details</span>
+                <span class="context-menu-shortcut">Space</span>
             </div>
             <div class="context-menu-item" id="ctx-duplicate" onclick="handleContextAction('duplicate')">
                 <i data-lucide="copy"></i>
-                <span>복제</span>
+                <span>Duplicate</span>
                 <span class="context-menu-shortcut">D</span>
+            </div>
+            <div class="context-menu-item" id="ctx-fullscreen" onclick="handleContextAction('fullscreen')">
+                <i data-lucide="maximize"></i>
+                <span>Fullscreen</span>
             </div>
             <div class="context-menu-divider"></div>
             <div class="context-menu-item" onclick="handleContextAction('delete')">
                 <i data-lucide="trash-2"></i>
-                <span>삭제</span>
+                <span id="ctx-delete-text">Delete diagram</span>
                 <span class="context-menu-shortcut">Del</span>
             </div>
         </div>
@@ -530,8 +552,7 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <span>이동할 위치 선택</span>
-                    <button class="btn-ghost" onclick="closeMoveModal()" style="padding: 4px;"><i
-                            data-lucide="x"></i></button>
+                    <button class="btn-icon" onclick="closeMoveModal()"><i data-lucide="x"></i></button>
                 </div>
                 <div class="modal-body" id="move-tree-container">
                     <!-- Tree items injected here -->
@@ -539,6 +560,34 @@
                 <div class="modal-footer">
                     <button class="btn btn-ghost" onclick="closeMoveModal()">취소</button>
                     <button class="btn btn-primary" onclick="confirmMove()">이동</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Edit Details Modal -->
+        <div id="details-modal" class="modal-overlay">
+            <div class="modal-content" style="width: 500px;">
+                <div class="modal-header">
+                    <span>Edit diagram details</span>
+                    <button class="btn-icon" onclick="closeDetailsModal()"><i data-lucide="x"></i></button>
+                </div>
+                <div class="modal-body" style="display: flex; flex-direction: column; gap: 1rem;">
+                    <div class="form-group">
+                        <label for="detail-title"
+                            style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Title</label>
+                        <input type="text" id="detail-title" class="input-text" style="width: 100%;">
+                    </div>
+                    <div class="form-group">
+                        <label for="detail-summary"
+                            style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Summary</label>
+                        <textarea id="detail-summary" class="input-text"
+                            style="width: 100%; height: 80px; resize: vertical;"
+                            placeholder="Enter a summary"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-ghost" onclick="closeDetailsModal()">Cancel</button>
+                    <button class="btn btn-primary" onclick="saveDetails()">Save</button>
                 </div>
             </div>
         </div>
@@ -559,19 +608,20 @@
                     <!-- Injected via JS -->
                 </div>
 
-                <div class="dashboard-controls">
-                    <div class="search-box">
+                <div class="dashboard-controls"
+                    style="display: flex; gap: 0.5rem; flex-wrap: nowrap; margin-bottom: 2rem; align-items: center;">
+                    <div class="search-box" style="flex: 1; min-width: 0;">
                         <i data-lucide="search"></i>
                         <input type="text" id="search-input" placeholder="다이어그램 검색..." class="input-text">
                     </div>
-                    <div class="search-options" style="display: flex; align-items: center; gap: 0.5rem;">
-                        <input type="checkbox" id="search-content-check"
-                            style="width: 16px; height: 16px; cursor: pointer;">
-                        <label for="search-content-check"
-                            style="font-size: 0.9rem; cursor: pointer; user-select: none;">내용 포함</label>
-                    </div>
-                    <div class="sort-box">
-                        <select id="sort-select" class="input-select">
+
+                    <button id="btn-search-content" class="btn btn-ghost" title="내용 포함 검색"
+                        style="padding: 0.5rem; border: 1px solid var(--color-border); color: var(--color-text-secondary);">
+                        <i data-lucide="file-text"></i>
+                    </button>
+
+                    <div class="sort-box" style="flex-shrink: 0;">
+                        <select id="sort-select" class="input-select" style="min-width: 100px;">
                             <option value="newest">최신순</option>
                             <option value="name">이름순</option>
                         </select>
@@ -590,7 +640,7 @@
         import {
             getAllDiagrams, getCurrentUser, deleteDiagram,
             getAllGroups, createGroup, deleteGroup, updateGroup, moveDiagram, getGroup,
-            duplicateDiagram, renameDiagram, renameGroup, moveGroup, getAllVersions
+            duplicateDiagram, renameDiagram, renameGroup, moveGroup, getAllVersions, updateDiagramDetails
         } from './js/storage.js';
         import { showAlert, showConfirm, showPrompt } from './js/ui-utils.js';
 
@@ -630,9 +680,28 @@
                 // Events
                 searchInput.addEventListener('input', filterAndRender);
                 sortSelect.addEventListener('change', filterAndRender);
-                const searchCheck = document.getElementById('search-content-check');
-                if (searchCheck) {
-                    searchCheck.addEventListener('change', filterAndRender);
+
+                const searchContentBtn = document.getElementById('btn-search-content');
+                if (searchContentBtn) {
+                    searchContentBtn.addEventListener('click', () => {
+                        const icon = searchContentBtn.querySelector('i');
+                        // Toggle state logic via data attribute or class
+                        const isActive = searchContentBtn.classList.contains('active');
+
+                        if (isActive) {
+                            searchContentBtn.classList.remove('active');
+                            searchContentBtn.style.backgroundColor = 'transparent';
+                            searchContentBtn.style.borderColor = 'var(--color-border)';
+                            searchContentBtn.style.color = 'var(--color-text-secondary)';
+                        } else {
+                            searchContentBtn.classList.add('active');
+                            searchContentBtn.style.backgroundColor = 'rgba(var(--color-primary-rgb), 0.1)';
+                            searchContentBtn.style.borderColor = 'var(--color-primary)';
+                            searchContentBtn.style.color = 'var(--color-primary)';
+                        }
+
+                        filterAndRender();
+                    });
                 }
 
                 if (window.lucide) {
@@ -678,9 +747,8 @@
         function filterAndRender() {
             const keyword = searchInput.value.toLowerCase().trim();
             const sortMode = sortSelect.value;
-            const searchContent = document.getElementById('search-content-check')
-                ? document.getElementById('search-content-check').checked
-                : false;
+            const searchContentBtn = document.getElementById('btn-search-content');
+            const searchContent = searchContentBtn ? searchContentBtn.classList.contains('active') : false;
 
             let filteredDiagrams = [];
             let filteredGroups = [];
@@ -739,30 +807,31 @@
                 return;
             }
 
-            const groupHtml = groups.map(g => `
+            const groupHtml = groups.map(g => {
+                const timeAgo = getTimeAgo(g.updatedAt || Date.now());
+                return `
                 <div class="folder-card" 
                      onclick="handleEnterGroup('${g.id}')"
                      ondrop="handleDropOnGroup(event, '${g.id}')"
                      ondragover="allowDrop(event)"
                      ondragenter="handleDragEnter(event)"
-                     ondragleave="handleDragLeave(event)"
-                     oncontextmenu="handleContextMenu(event, 'group', '${g.id}')">
+                     ondragleave="handleDragLeave(event)">
+                    <div class="card-actions">
+                        <button class="btn-menu" onclick="event.stopPropagation(); handleContextMenu(event, 'group', '${g.id}')">
+                            <i data-lucide="more-horizontal" style="width: 16px; height: 16px;"></i>
+                        </button>
+                    </div>
                     <div class="card-preview">
                         <i data-lucide="folder" fill="currentColor"></i>
                     </div>
                     <div class="card-body">
                         <div class="card-title">${g.name}</div>
                         <div class="card-meta">
-                            <span>폴더</span>
-                        </div>
-                        <div class="card-actions">
-                            <button class="btn-trash" onclick="event.stopPropagation(); handleDeleteGroup('${g.id}')" title="삭제">
-                                <i data-lucide="trash-2"></i>
-                            </button>
+                            <span>${timeAgo}</span>
                         </div>
                     </div>
                 </div>
-            `).join('');
+            `}).join('');
 
             const diagramHtml = diagrams.map(d => {
                 let previewContent = '<i data-lucide="image"></i>'; // Default
@@ -774,24 +843,25 @@
                     }
                 }
 
+                const timeAgo = getTimeAgo(d.updatedAt);
+
                 return `
                 <div class="diagram-card" 
                      draggable="true" 
                      ondragstart="handleDragStart(event, '${d.id}')"
-                     onclick="handleCardClick(event, '${d.id}')"
-                     oncontextmenu="handleContextMenu(event, 'diagram', '${d.id}')">
+                     onclick="handleCardClick(event, '${d.id}')">
+                    <div class="card-actions">
+                         <button class="btn-menu" onclick="event.stopPropagation(); handleContextMenu(event, 'diagram', '${d.id}')">
+                            <i data-lucide="more-horizontal" style="width: 16px; height: 16px;"></i>
+                        </button>
+                    </div>
                     <div class="card-preview">
                         ${previewContent}
                     </div>
                     <div class="card-body">
                         <div class="card-title">${d.title}</div>
                         <div class="card-meta">
-                            <span>${new Date(d.updatedAt).toLocaleDateString()} · ${d.updatedBy}</span>
-                        </div>
-                        <div class="card-actions">
-                            <button class="btn-trash" onclick="event.stopPropagation(); handleDelete('${d.id}')" title="삭제">
-                                <i data-lucide="trash-2"></i>
-                            </button>
+                            <span>${timeAgo}</span>
                         </div>
                     </div>
                 </div>
@@ -800,6 +870,20 @@
 
             listContainer.innerHTML = groupHtml + diagramHtml;
             if (window.lucide) lucide.createIcons();
+        }
+
+        function getTimeAgo(timestamp) {
+            const seconds = Math.floor((Date.now() - timestamp) / 1000);
+            if (seconds < 60) return "방금 전";
+            const minutes = Math.floor(seconds / 60);
+            if (minutes < 60) return `${minutes}분 전`;
+            const hours = Math.floor(minutes / 60);
+            if (hours < 24) return `${hours}시간 전`;
+            const days = Math.floor(hours / 24);
+            if (days < 30) return `${days}일 전`;
+            const months = Math.floor(days / 30);
+            if (months < 12) return `${months}달 전`;
+            return `${Math.floor(months / 12)}년 전`;
         }
 
         function renderBreadcrumb() {
@@ -941,20 +1025,13 @@
         let isMenuOpen = false;
 
         window.handleCardClick = (e, id) => {
-            // If menu was open, we are closing it. Do NOT navigate.
-            // Note: The global click handler runs AFTER this bubbling phase usually? 
-            // Actually, if we click on the card, this fires.
-            // If the menu IS open, we want to close it and prevent nav.
+            // Prevent navigation if we are interacting with menu or just closed it
             if (isMenuOpen) {
-                // It will be closed by global click handler or we close it here.
-                // Let's rely on global handler but blocking nav is key.
-                // Wait, if I right click, isMenuOpen becomes true.
-                e.preventDefault();
-                e.stopPropagation();
-                // We should close menu here to be responsive?
-                // Actually global click listener handles closing. We just stop nav.
                 return;
             }
+            // Check if click was on the menu button (handled by stopPropagation, but just in case)
+            if (e.target.closest('.btn-menu')) return;
+
             location.href = `index.html?id=${id}`;
         };
 
@@ -962,12 +1039,27 @@
             e.preventDefault();
             e.stopPropagation();
 
+            // Close any existing menu first
+            if (isMenuOpen) {
+                contextMenu.style.display = 'none';
+                isMenuOpen = false;
+            }
+
             contextTargetId = id;
             contextTargetType = type;
 
-            // Highlight Logic
-            document.querySelectorAll('.diagram-card, .folder-card').forEach(el => el.classList.remove('selected-card'));
-            e.currentTarget.classList.add('selected-card');
+            /* Open Text Removed
+            const openText = document.getElementById('ctx-open-text');
+            if (openText) {
+                if (type === 'diagram') {
+                    const diagram = allDiagrams.find(d => d.id === id);
+                    openText.textContent = diagram ? `Open ${diagram.title}` : 'Open diagram';
+                } else {
+                    const group = allGroups.find(g => g.id === id);
+                    openText.textContent = group ? `Open ${group.name}` : 'Open folder';
+                }
+            }
+            */
 
             // Hide Duplicate if group
             const dupItem = document.getElementById('ctx-duplicate');
@@ -975,13 +1067,47 @@
                 dupItem.style.display = (type === 'group') ? 'none' : 'flex';
             }
 
-            // Position Menu
-            contextMenu.style.display = 'block';
-            contextMenu.style.left = `${e.pageX}px`;
-            contextMenu.style.top = `${e.pageY}px`;
+            // Fullscreen - Hide for group
+            const fullscreenItem = document.getElementById('ctx-fullscreen');
+            if (fullscreenItem) {
+                fullscreenItem.style.display = (type === 'group') ? 'none' : 'flex';
+            }
 
-            // Set flag with a slight timeout to avoid immediate click conflict if any
-            setTimeout(() => { isMenuOpen = true; }, 10);
+            // Edit Text
+            const editText = document.getElementById('ctx-edit-text');
+            if (editText) {
+                editText.textContent = (type === 'group') ? 'Edit folder name' : 'Edit diagram details';
+            }
+
+            // Move Text (Optional, but let's keep it 'Move')
+
+            // Delete Text
+            const deleteText = document.getElementById('ctx-delete-text');
+            if (deleteText) {
+                deleteText.textContent = (type === 'group') ? 'Delete folder' : 'Delete diagram';
+            }
+
+            // Position Menu - Triggered by button click usually
+            // Adjust position to be near the button or mouse
+            // We can just use pageX/Y from event
+            // Adjust slightly so it doesn't overlap cursor immediately
+            const rect = contextMenu.getBoundingClientRect();
+
+            // Set flag immediately, but handle click-outside carefully
+            contextMenu.style.display = 'block';
+
+            // If click (button), place near existing mouse or element? 
+            // e.pageX/Y works for click too.
+            const menuX = e.pageX - 150; // Show to the left of cursor/button mostly?
+            const menuY = e.pageY + 10;
+
+            contextMenu.style.left = `${menuX}px`;
+            contextMenu.style.top = `${menuY}px`;
+
+            // Use requestAnimationFrame to ensure the display change is processed before setting flag?
+            // Or just set it. The global click handler for closing needs to NOT fire immediately for this click.
+            // Since we stuck e.stopPropagation(), the global listener on document shouldn't catch this click.
+            isMenuOpen = true;
         };
 
         window.handleContextAction = async (action) => {
@@ -990,29 +1116,27 @@
 
             if (!contextTargetId) return;
 
-            if (action === 'rename') {
-                const isGroup = contextTargetType === 'group';
-                const oldName = isGroup
-                    ? allGroups.find(g => g.id === contextTargetId).name
-                    : allDiagrams.find(d => d.id === contextTargetId).title;
-
-                const newName = await showPrompt('새 이름을 입력하세요:', oldName, '이름 변경');
-                if (newName && newName !== oldName) {
-                    if (isGroup) {
-                        // Using updateGroup directly? Need rename wrapper? 
-                        // Wait, storage.js has renameGroup and renameDiagram. Use those via module import if exposed or add helper.
-                        // IMPORTANT: We need to import renameGroup/Diagram at top.
-                        // For now, let's assume we update imports below.
-                        // We imported renameGroup. Let's use it for consistency if we added it, but updateGroup works too.
-                        // Actually renameGroup logic in storage.js is just updateGroup wrapper probably probably?
-                        // Let's use renameGroup if imported or updateGroup. We imported renameGroup.
+            if (action === 'open') {
+                if (contextTargetType === 'group') {
+                    handleEnterGroup(contextTargetId);
+                } else {
+                    location.href = `index.html?id=${contextTargetId}`;
+                }
+            } else if (action === 'edit-details') {
+                if (contextTargetType === 'group') {
+                    // Reuse simple prompt for group logic? 
+                    // Or reuse modal? User asked for "Diagram Detail". 
+                    // Groups just have name. Reuse simple prompt as fallback or "Rename"
+                    // Let's stick to rename logic for groups as it's simpler
+                    const group = allGroups.find(g => g.id === contextTargetId);
+                    const newName = await showPrompt('새 이름을 입력하세요:', group.name, '이름 변경');
+                    if (newName && newName !== group.name) {
                         renameGroup(contextTargetId, newName);
-                    } else {
-                        renameDiagram(contextTargetId, newName);
+                        loadData();
+                        filterAndRender();
                     }
-
-                    loadData();
-                    filterAndRender();
+                } else {
+                    openEditDetails(contextTargetId);
                 }
             } else if (action === 'duplicate') {
                 if (contextTargetType === 'diagram') {
@@ -1020,14 +1144,65 @@
                     duplicateDiagram(contextTargetId, author);
                     loadData();
                     filterAndRender();
-                } else {
-                    alert('그룹 복제는 지원하지 않습니다.');
                 }
             } else if (action === 'delete') {
                 if (contextTargetType === 'group') handleDeleteGroup(contextTargetId);
                 else handleDelete(contextTargetId);
             } else if (action === 'move') {
                 openMoveModal(contextTargetId, contextTargetType);
+            } else if (action === 'fullscreen') {
+                if (contextTargetType === 'diagram') {
+                    // Open in new tab or fullscreen mode? 
+                    // Just open standard view for now, maybe add param for fullscreen
+                    location.href = `index.html?id=${contextTargetId}&fullscreen=true`;
+                }
+            }
+        };
+
+        // --- Edit Details Modal Logic ---
+        const detailsModal = document.getElementById('details-modal');
+        const detailTitleInput = document.getElementById('detail-title');
+        const detailSummaryInput = document.getElementById('detail-summary');
+        let editingDiagramId = null;
+
+        window.openEditDetails = (id) => {
+            const diagram = allDiagrams.find(d => d.id === id);
+            if (!diagram) return;
+
+            editingDiagramId = id;
+            detailTitleInput.value = diagram.title || '';
+            detailSummaryInput.value = diagram.summary || ''; // New field
+
+            detailsModal.style.display = 'flex';
+        };
+
+        window.closeDetailsModal = () => {
+            detailsModal.style.display = 'none';
+            editingDiagramId = null;
+        };
+
+        window.saveDetails = () => {
+            if (!editingDiagramId) return;
+
+            const newTitle = detailTitleInput.value.trim();
+            const newSummary = detailSummaryInput.value.trim();
+
+            if (!newTitle) {
+                alert('Title is required');
+                return;
+            }
+
+            try {
+                updateDiagramDetails(editingDiagramId, {
+                    title: newTitle,
+                    summary: newSummary
+                });
+                loadData();
+                filterAndRender();
+                closeDetailsModal();
+            } catch (error) {
+                console.error("Failed to save diagram details:", error);
+                alert("Failed to save details. Please try again.");
             }
         };
 
@@ -1151,8 +1326,12 @@
         };
 
         // Close menu on click elsewhere
+        // Close menu on click elsewhere
         document.addEventListener('click', (e) => {
             if (isMenuOpen) {
+                // If clicked inside context menu, do nothing (let item handlers work)
+                if (e.target.closest('#context-menu')) return;
+
                 contextMenu.style.display = 'none';
                 isMenuOpen = false;
                 // Optional: Remove highlight
@@ -1162,14 +1341,27 @@
 
         // Shortcuts
         document.addEventListener('keydown', (e) => {
-            if (isMenuOpen) { // Use flag check
-                if (e.code === 'Space') {
-                    e.preventDefault(); // Prevent scroll
-                    handleContextAction('rename');
-                } else if (e.code === 'KeyD') {
+            if (isMenuOpen && contextTargetId) {
+                // Ignore if typing in an input
+                if (e.target.matches('input, textarea')) return;
+
+                const key = e.key.toLowerCase();
+                const code = e.code;
+
+                if (key === 'o') {
+                    e.preventDefault();
+                    handleContextAction('open');
+                } else if (key === 'm') {
+                    e.preventDefault();
+                    handleContextAction('move');
+                } else if (code === 'Space') {
+                    e.preventDefault();
+                    handleContextAction('edit-details'); // Reverted to edit-details as rename action is not standard in menu html
+                } else if (key === 'd') {
+                    // Only for diagrams, but handleContextAction handles logic check
                     e.preventDefault();
                     handleContextAction('duplicate');
-                } else if (e.code === 'Delete') {
+                } else if (code === 'Delete' || code === 'Backspace') {
                     e.preventDefault();
                     handleContextAction('delete');
                 }

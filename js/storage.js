@@ -37,7 +37,7 @@ export function getDiagram(id) {
     return diagrams.find(d => d.id === id);
 }
 
-export function createDiagram(title, initialCode, authorName, groupId = null, thumbnail = null) {
+export function createDiagram(title, initialCode, authorName, groupId = null, thumbnail = null, externalId = '', summary = '') {
     const diagrams = getAllDiagrams();
     const versions = getAllVersions(); // Helper
 
@@ -68,7 +68,9 @@ export function createDiagram(title, initialCode, authorName, groupId = null, th
         updatedAt: Date.now(),
         latestVersionId: versionId,
         groupId: groupId, // New field
-        thumbnail: thumbnail // SVG string or DataURL
+        thumbnail: thumbnail, // SVG string or DataURL
+        externalId: externalId,
+        summary: summary
     };
     diagrams.unshift(diagram); // Prepend
     localStorage.setItem(KEYS.DIAGRAMS, JSON.stringify(diagrams));
@@ -108,6 +110,21 @@ export function updateDiagram(diagramId, code, authorName, note = 'Update', thum
     }
     localStorage.setItem(KEYS.DIAGRAMS, JSON.stringify(diagrams));
 
+    return diagrams[index];
+}
+
+export function updateDiagramDetails(diagramId, { title, externalId, summary }) {
+    const diagrams = getAllDiagrams();
+    const index = diagrams.findIndex(d => d.id === diagramId);
+    if (index === -1) throw new Error('Diagram not found');
+
+    if (title !== undefined) diagrams[index].title = title;
+    if (externalId !== undefined) diagrams[index].externalId = externalId;
+    if (summary !== undefined) diagrams[index].summary = summary;
+
+    diagrams[index].updatedAt = Date.now();
+
+    localStorage.setItem(KEYS.DIAGRAMS, JSON.stringify(diagrams));
     return diagrams[index];
 }
 
