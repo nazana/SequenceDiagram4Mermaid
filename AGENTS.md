@@ -5,7 +5,7 @@ Grid(표)와 Markdown(코드) 에디터 간 양방향 동기화, 실시간 렌�
 
 **Tech Stack:**
 -   **Core:** Grid 및 로직 처리를 위한 Vanilla HTML5, CSS3, JavaScript (ES Modules).
--   **Library:** Mermaid.js (v11+), Panzoom (줌/팬), Lucide Icons (아이콘).
+-   **Library:** Mermaid.js (v11.12.2+), Panzoom (줌/팬), Lucide Icons (아이콘).
 -   **Server:** 로컬 개발용 Node.js (http-server).
 
 **Operational Commands:**

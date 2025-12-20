@@ -13,7 +13,7 @@ Mermaid 코드 파싱, 양방향 동기화(Grid <-> Markdown), 로컬 스토리�
 
 -   **Environment:** 브라우저 네이티브 ES Modules (`import`/`export`).
 -   **No Build Step:** 모듈은 변환 없이 직접 서빙됩니다. Client 코드에서 Node 전용 API(`require` 등) 사용 금지.
--   **Mermaid:** v11.x 이상 버전을 사용하며, 비동기 렌더링을 신중하게 처리해야 합니다.
+-   **Mermaid:** v11.12.2 이상 버전을 사용하며, 비동기 렌더링을 신중하게 처리해야 합니다.
 -   **Syntax Compliance:** 코딩 시 항상 [공식 시퀀스 다이어그램 문법](https://mermaid.js.org/syntax/sequenceDiagram.html)을 준수해야 하며, 지원되지 않는 문법(예: 실험적 기능)은 사용자가 명시적으로 요청하지 않는 한 구현하지 마십시오.
 
 # Implementation Patterns
