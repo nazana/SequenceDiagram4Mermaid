@@ -33,6 +33,7 @@ Grid(표)와 Markdown(코드) 에디터 간 양방향 동기화, 실시간 렌�
 
 -   **Code Style:** 표준 ESLint 설정을 준수합니다.
 -   **Markdown:** 데이터 일관성을 위해 Markdown 에디터는 읽기 전용으로 유지하고, 데이터 수정은 Grid 에디터를 통합니다.
+-   **Official Documentation:** 모든 구현은 [Mermaid Sequence Diagram Syntax](https://mermaid.js.org/syntax/sequenceDiagram.html) 공식 문서를 기준으로 하며, 비표준 문법 사용을 금지합니다.
 
 # Context Map (Action-Based Routing)
 
