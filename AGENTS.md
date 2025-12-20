@@ -1,42 +1,39 @@
 # Project Context & Operations
 
-## Business Goal
-Mermaid Sequence Diagram의 시각적 편집 도구(Grid Editor)를 제공하여 비개발자도 직관적으로 다이어그램을 작성할 수 있게 함.
-Grid와 Markdown 간의 실시간 양방향 동기화 및 자동 문법 교정 기능을 핵심 가치로 함.
+이 프로젝트는 Mermaid 시퀀스 다이어그램을 위한 고품질 시각적 에디터입니다.
+Grid(표)와 Markdown(코드) 에디터 간 양방향 동기화, 실시간 렌더링, 버전 관리 기능을 제공합니다.
 
-## Tech Stack
-- **Core**: Vanilla JavaScript (ESM), HTML5, CSS3.
-- **Build**: No Build Step (Browser direct execution).
-- **Libraries**: `mermaid.js` (Rendering), `phosphor-icons` (UI), `Sortable.js` (Drag & Drop), `http-server` (Local Dev).
+**Tech Stack:**
+-   **Core:** Grid 및 로직 처리를 위한 Vanilla HTML5, CSS3, JavaScript (ES Modules).
+-   **Library:** Mermaid.js (v11+), Panzoom (줌/팬), Lucide Icons (아이콘).
+-   **Server:** 로컬 개발용 Node.js (http-server).
 
-## Operational Commands
-- **Run (Dev)**: `npm start` (Runs local server via `node bin/cli.js`)
-- **Lint**: `npm run lint`
+**Operational Commands:**
+-   **Start Server:** `npm start` (http://127.0.0.1:8080 에서 실행)
+-   **Lint Code:** `npm run lint`
 
 # Golden Rules
 
-## Immutable Constraints
-1. **Zero External Build**: Webpack, Babel 등의 번들러를 절대 도입하지 않음. 순수 ESM 표준을 유지.
-2. **Local Storage Only**: 사용자 데이터는 브라우저 로컬 스토리지에만 저장하며 서버로 전송하지 않음.
-3. **Strict Validation**: Mermaid 문법(Activation open/close) 오류를 방지하는 로직을 UI 레벨에서 강제함.
+**Immutable Principles:**
+1.  **Language Policy:** 모든 문서, 주석, 태스크 리스트는 **반드시 한국어**로 작성합니다. (단, 변수명 및 커밋 메시지는 영문 권장)
+2.  **Branch Strategy:** 기능 개발 시 `feat/feature-name` 브랜치 사용. 완료 후 `main` 병합 및 `CHANGELOG.md` 업데이트 필수.
+3.  **Design Philosophy:** "Premium Dark Theme" 유지. 심미성과 사용자 경험(UX)을 최우선으로 고려합니다.
 
-## Do's & Don'ts
-- **DO** 모든 문서(주석, 커밋 메시지 본문 포함)는 **한국어**로 작성하십시오.
-- **DO** UI 디자인은 `index.css`의 CSS Variables를 활용하여 Premium Dark Mode 일관성을 유지하십시오.
-- **DON'T** 이모지를 파일명, 커밋 메시지, 문서 내용에 사용하지 마십시오.
-- **DON'T** `var` 키워드를 사용하지 말고 `const`와 `let`만 사용하십시오.
-- **DON'T** Framework(React, Vue 등) 코드를 혼용하지 마십시오. Vanilla JS 패턴을 유지하십시오.
+**Do's:**
+-   UI 요소에는 `lucide` 아이콘을 사용하여 일관성을 유지하십시오.
+-   대시보드와 에디터 레이아웃은 항상 반응형으로 동작해야 합니다.
+-   사용자 입력 시 Mermaid 코드 파싱 에러를 방지하기 위해 반드시 `sanitize` 로직을 거치십시오.
+
+**Don'ts:**
+-   복잡한 사용자 인터랙션에 브라우저 기본 `alert`를 사용하지 마십시오. (커스텀 모달 사용)
+-   `index.html` 내부에 긴 스크립트를 작성하지 마십시오. 모든 로직은 `js/` 모듈로 분리하십시오.
 
 # Standards & References
 
-## Code Conventions
-- **Module**: `import { function } from './file.js';` (확장자 .js 필수)
-- **Style**: Glassmorphism (`backdrop-filter`) 및 Semantic CSS Variables 사용.
-
-## Maintenance Policy
-- 이 파일(`AGENTS.md`)의 규칙과 실제 코드 간의 괴리가 발견될 경우, 즉시 규칙을 업데이트하거나 코드를 수정하여 동기화하십시오.
+-   **Code Style:** 표준 ESLint 설정을 준수합니다.
+-   **Markdown:** 데이터 일관성을 위해 Markdown 에디터는 읽기 전용으로 유지하고, 데이터 수정은 Grid 에디터를 통합니다.
 
 # Context Map (Action-Based Routing)
 
-- **[Core Logic & Event Handling](./js/AGENTS.md)** — 상태 동기화, Mermaid 파싱, 그리드 편집 로직 작업 시.
-- **[UI Styling & Layout](./css/AGENTS.md)** — CSS Variables, 다크 모드, 레이아웃 및 애니메이션 수정 시.
+-   **[자바스크립트 로직 / 모듈](./js/AGENTS.md)** — 핵심 애플리케이션 로직, Mermaid 파싱/렌더링, 상태 관리.
+-   **[스타일링 / 테마](./css/AGENTS.md)** — CSS 변수, 다크 모드 스타일링, 반응형 레이아웃 규칙.
